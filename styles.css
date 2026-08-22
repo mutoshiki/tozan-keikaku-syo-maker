@@ -16,3 +16,19 @@
 @media (max-width:760px){.app-shell{padding:2rem 1rem 4rem}.intro h1{font-size:2rem}.progress__step strong{display:none}.step{padding:1.25rem}.step-heading{display:block}.step-heading p{margin-top:.75rem}.form-grid,.form-grid--three,.metrics-grid{grid-template-columns:1fr}.field--wide{grid-column:auto}.upload-grid{grid-template-columns:1fr 1fr}.summary-strip{grid-template-columns:1fr 1fr}.doc-page{width:100%;min-height:auto;aspect-ratio:210/297;padding:5vw;font-size:2.5vw;overflow:hidden}.doc-page h1{font-size:4.2vw}.doc-page h2{font-size:3vw}.journey-box{min-height:0}.route-image-frame{height:38vw}.gear-box{line-height:1.8}.cds-header__link{font-size:.75rem}.cds-header__name span{display:none}}
 @media (max-width:480px){.upload-grid{grid-template-columns:1fr}.summary-strip{grid-template-columns:1fr 1fr}.action-row{align-items:flex-start;flex-direction:column}.btn{width:100%}.step-actions .btn{width:auto}}
 @media print{body{background:#fff}.cds-header,.app-shell>*:not(.step[data-step="4"]),.step[data-step="4"]>.step-heading,.step[data-step="4"]>.summary-strip,.step[data-step="4"]>.action-row{display:none!important}.app-shell{max-width:none;margin:0;padding:0}.step[data-step="4"]{display:block!important;padding:0;background:#fff}.document-stack{display:block}.doc-page{box-shadow:none;width:210mm;height:297mm;min-height:297mm;margin:0;page-break-after:always;break-after:page;overflow:hidden}.doc-page:last-child{page-break-after:auto;break-after:auto}}
+
+@page{size:A4 portrait;margin:0}
+@media print{
+  html,body{width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
+  .doc-page{width:210mm!important;height:297mm!important;min-height:297mm!important;aspect-ratio:auto!important;padding:17mm 18mm 16mm!important;font-size:11pt!important;line-height:1.8!important;overflow:hidden!important;box-shadow:none!important}
+  .doc-page h1{font-size:20pt!important;margin:4mm 0 6mm!important}
+  .doc-page h2{font-size:13pt!important;margin:7mm 0 4mm!important}
+  .doc-line{margin:2.5mm 0!important}
+  .journey-box{padding:4mm 3mm!important;line-height:2.1!important;margin-top:4mm!important;min-height:42mm!important}
+  .journey-legend{font-size:8pt!important;margin-top:2mm!important}
+  .route-image-frame{height:112mm!important;width:88%!important;margin:2mm auto 5mm!important}
+  .route-image-frame img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important}
+  .gear-box{padding:5mm 4mm!important;line-height:2.4!important}
+  .warning{font-size:9pt!important;margin:8mm 0!important}
+  .contact-list p{margin:4mm 0!important}
+}
