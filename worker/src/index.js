@@ -21,11 +21,11 @@ function json(data, status, origin) {
 const RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
-    durationMinutes: { type: ['integer', 'null'], description: 'YAMAP計画データに表示された合計時間を分に換算。読めなければnull。' },
-    distanceKm: { type: ['number', 'null'], description: '距離km。読めなければnull。' },
-    ascentM: { type: ['integer', 'null'], description: 'のぼり/上りの累積標高m。読めなければnull。' },
-    descentM: { type: ['integer', 'null'], description: 'くだり/下りの累積標高m。読めなければnull。' },
-    routeImageIndex: { type: ['integer', 'null'], description: 'アップロード順0始まりで、全体ルート地図が最も明瞭に写る画像のindex。なければnull。' },
+    durationMinutes: { type: 'integer', nullable: true, description: 'YAMAP計画データに表示された合計時間を分に換算。読めなければnull。' },
+    distanceKm: { type: 'number', nullable: true, description: '距離km。読めなければnull。' },
+    ascentM: { type: 'integer', nullable: true, description: 'のぼり/上りの累積標高m。読めなければnull。' },
+    descentM: { type: 'integer', nullable: true, description: 'くだり/下りの累積標高m。読めなければnull。' },
+    routeImageIndex: { type: 'integer', nullable: true, description: 'アップロード順0始まりで、全体ルート地図が最も明瞭に写る画像のindex。なければnull。' },
     itinerary: {
       type: 'array',
       items: {
