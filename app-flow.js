@@ -14,11 +14,8 @@ async function preprocessImage(dataUrl, mode = 'full') {
 }
 
 async function cropRouteMap(dataUrl) {
-  const img = await new Promise((resolve,reject) => { const i=new Image(); i.onload=()=>resolve(i); i.onerror=reject; i.src=dataUrl; });
-  const sx=img.naturalWidth*.035, sy=img.naturalHeight*.225, sw=img.naturalWidth*.93, sh=img.naturalHeight*.31;
-  const canvas=document.createElement('canvas'); canvas.width=Math.round(sw); canvas.height=Math.round(sh);
-  canvas.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
-  return canvas.toDataURL('image/jpeg',.92);
+  // ルート画像は元スクリーンショットをそのまま使う。固定比率の切り抜きはしない。
+  return dataUrl;
 }
 
 async function ocr(dataUrl, logger) {
