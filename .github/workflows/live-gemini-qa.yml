@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p qa-output
-          cat > /tmp/e2e.mjs <<'NODE'
+          cat > qa-e2e.mjs <<'NODE'
           import puppeteer from 'puppeteer-core';
           import { PDFDocument } from 'pdf-lib';
           import fs from 'node:fs';
@@ -131,7 +131,7 @@ jobs:
           NODE
           CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
           if [ -z "$CHROME_BIN" ]; then echo 'Chrome/Chromium not found'; exit 1; fi
-          CHROME_BIN="$CHROME_BIN" node /tmp/e2e.mjs
+          CHROME_BIN="$CHROME_BIN" node qa-e2e.mjs
       - name: Upload browser QA artifacts
         if: always()
         uses: actions/upload-artifact@v4
