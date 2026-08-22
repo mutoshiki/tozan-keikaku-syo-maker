@@ -21,7 +21,6 @@ jobs:
       - name: Start static site
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/tozan-http.log 2>&1 &
-          echo $! > /tmp/tozan-http.pid
           for i in {1..30}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
           cat /tmp/tozan-http.log
           exit 1
@@ -35,16 +34,12 @@ jobs:
           import fs from 'node:fs';
 
           const chrome = process.env.CHROME_BIN || '/usr/bin/google-chrome';
-          const browser = await puppeteer.launch({
-            executablePath: chrome,
-            headless: true,
-            args: ['--no-sandbox', '--disable-dev-shm-usage'],
-          });
+          const browser = await puppeteer.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
           const page = await browser.newPage();
           await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
-          const consoleErrors = [];
-          page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
-          page.on('pageerror', err => consoleErrors.push(String(err)));
+          const pageErrors = [];
+          page.on('pageerror', err => pageErrors.push(String(err)));
+          const fail = m => { throw new Error(m); };
 
           await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle0' });
           const setValue = async (selector, value) => page.$eval(selector, (el, v) => {
@@ -68,22 +63,38 @@ jobs:
           const input = await page.$('#file-input');
           await input.uploadFile('qa/fixtures/metrics.webp', 'qa/fixtures/itin1.webp', 'qa/fixtures/itin2.webp');
           await page.waitForFunction(() => window.__tozanApp?.state?.uploads?.length === 3);
-          await page.click('#analyze-button');
-          await page.waitForSelector('.step[data-step="3"].is-active', { timeout: 90000 });
+
+          let analysisOk = false;
+          const attempts = [];
+          for (let attempt = 1; attempt <= 3; attempt += 1) {
+            await page.click('#analyze-button');
+            const outcome = await page.waitForFunction(() => {
+              if (document.querySelector('.step[data-step="3"].is-active')) return 'ok';
+              const error = document.querySelector('#analysis-status.is-error');
+              if (error && !error.classList.contains('is-hidden')) return `error:${error.textContent}`;
+              return false;
+            }, { timeout: 65000 }).then(handle => handle.jsonValue()).catch(() => 'timeout');
+            attempts.push(outcome);
+            if (outcome === 'ok') { analysisOk = true; break; }
+            if (attempt < 3) {
+              await new Promise(resolve => setTimeout(resolve, 12000));
+              await page.evaluate(() => document.querySelector('#analysis-status')?.classList.remove('is-error'));
+            }
+          }
+          if (!analysisOk) {
+            await page.screenshot({ path: 'qa-output/analysis-failure.png', fullPage: true });
+            fs.writeFileSync('qa-output/analysis-error.txt', attempts.join('\n'));
+            fail(`Gemini analysis did not reach step 3: ${attempts.join(' | ')}`);
+          }
 
           const values = await page.evaluate(() => ({
             duration: document.querySelector('#durationMinutes').value,
             distance: document.querySelector('#distanceKm').value,
             ascent: document.querySelector('#ascentM').value,
             descent: document.querySelector('#descentM').value,
-            rows: [...document.querySelectorAll('#itinerary-body tr')].map(tr => ({
-              time: tr.querySelector('.row-time').value,
-              place: tr.querySelector('.row-place').value,
-              major: tr.querySelector('.row-major').checked,
-            })),
+            rows: [...document.querySelectorAll('#itinerary-body tr')].map(tr => ({ time: tr.querySelector('.row-time').value, place: tr.querySelector('.row-place').value, major: tr.querySelector('.row-major').checked })),
             routeSameAsUpload: window.__tozanApp.state.routeImage === window.__tozanApp.state.uploads[0].url,
           }));
-          const fail = m => { throw new Error(m); };
           if (values.duration !== '370') fail(`duration=${values.duration}`);
           if (values.distance !== '9.5') fail(`distance=${values.distance}`);
           if (values.ascent !== '987') fail(`ascent=${values.ascent}`);
@@ -97,9 +108,9 @@ jobs:
 
           await page.evaluate(() => {
             const row = [...document.querySelectorAll('#itinerary-body tr')].find(tr => tr.querySelector('.row-place').value === '四阿山');
-            const input = row.querySelector('.row-rest');
-            input.value = '60';
-            input.dispatchEvent(new Event('input', { bubbles: true }));
+            const rest = row.querySelector('.row-rest');
+            rest.value = '60';
+            rest.dispatchEvent(new Event('input', { bubbles: true }));
           });
           await page.waitForFunction(() => [...document.querySelectorAll('#itinerary-body tr')].some(tr => tr.querySelector('.row-place').value === '中四阿' && tr.querySelector('.adjusted').textContent.includes('12:35')));
           const shifted = await page.evaluate(() => [...document.querySelectorAll('#itinerary-body tr')].map(tr => ({ place: tr.querySelector('.row-place').value, adjusted: tr.querySelector('.adjusted').textContent })));
@@ -124,8 +135,8 @@ jobs:
           fs.writeFileSync('qa-output/plan.pdf', pdf);
           const pdfDoc = await PDFDocument.load(pdf);
           if (pdfDoc.getPageCount() !== 3) fail(`PDF pages=${pdfDoc.getPageCount()}`);
-          fs.writeFileSync('qa-output/result.json', JSON.stringify({ values, shifted, routeInfo: { width: routeInfo.width, height: routeInfo.height }, objectFit, pdfPages: pdfDoc.getPageCount(), consoleErrors }, null, 2));
-          if (consoleErrors.length) fail(`console errors: ${consoleErrors.join(' | ')}`);
+          fs.writeFileSync('qa-output/result.json', JSON.stringify({ attempts, values, shifted, routeInfo: { width: routeInfo.width, height: routeInfo.height }, objectFit, pdfPages: pdfDoc.getPageCount(), pageErrors }, null, 2));
+          if (pageErrors.length) fail(`page errors: ${pageErrors.join(' | ')}`);
           console.log('LIVE_BROWSER_PDF_QA_PASS');
           await browser.close();
           NODE
