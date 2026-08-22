@@ -77,6 +77,20 @@ async function callGemini(images, apiKey) {
   return JSON.parse(text);
 }
 
+function bytesToBase64(bytes) {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  return btoa(binary);
+}
+
+async function fetchQaFixture(name) {
+  const url = `https://raw.githubusercontent.com/mutoshiki/tozan-keikaku-syo-maker/feat/gemini-vision-worker/qa/fixtures/${name}.webp`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`QA fixture ${name} fetch failed: ${response.status}`);
+  return { mimeType: 'image/webp', data: bytesToBase64(new Uint8Array(await response.arrayBuffer())) };
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
@@ -86,6 +100,16 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
     if (url.pathname === '/health' && request.method === 'GET') return json({ ok: true, geminiConfigured: Boolean(env.GEMINI_API_KEY) }, 200, origin);
+    if (url.pathname === '/qa' && request.method === 'GET') {
+      if (!env.GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY がWorkerに設定されていません。' }, 503, origin);
+      try {
+        const images = await Promise.all(['metrics','itin1','itin2'].map(fetchQaFixture));
+        return json({ qa: 'real-yamap-crops', result: await callGemini(images, env.GEMINI_API_KEY) }, 200, origin);
+      } catch (error) {
+        console.error(error);
+        return json({ error: error?.message || 'QA failed' }, 500, origin);
+      }
+    }
     if (url.pathname !== '/analyze' || request.method !== 'POST') return json({ error: 'Not found' }, 404, origin);
     if (!ALLOWED_ORIGINS.has(origin)) return json({ error: 'Origin not allowed' }, 403, origin);
     if (!env.GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY がWorkerに設定されていません。' }, 503, origin);
