@@ -46,13 +46,13 @@
         <label class="field"><span>氏名 *</span><input id="plannerName" type="text" required></label>
         <label class="field"><span>電話番号 *</span><input id="plannerPhone" type="tel" inputmode="tel" required></label>
       </div>
-      <label class="remember-row"><input id="rememberPlanner" type="checkbox"> この端末に企画者情報を保存する <span>（ブラウザ内だけに保存）</span></label>
 
       <h3 class="subheading">留守本部</h3>
       <div class="form-grid">
         <label class="field"><span>氏名 *</span><input id="baseName" type="text" required></label>
         <label class="field"><span>電話番号 *</span><input id="basePhone" type="tel" inputmode="tel" required></label>
       </div>
+      <label class="remember-row"><input id="rememberPlanner" type="checkbox"> この端末に企画者・留守本部情報を保存する <span>（ブラウザ内だけに保存）</span></label>
 
       <details class="details-panel">
         <summary>通常と違う場合だけ変更</summary>
@@ -106,12 +106,13 @@
 
       <h3 class="subheading">提出先・持参物</h3>
       <div class="form-grid form-grid--three">
-        <label class="field"><span>管轄警察署 *</span><input id="police1Name" type="text" placeholder="例：上田警察署" required></label>
+        <label class="field"><span>管轄警察署 *</span><input id="police1Name" type="text" placeholder="YAMAPから自動判定" required></label>
         <label class="field"><span>電話番号 *</span><input id="police1Phone" type="tel" inputmode="tel" required></label>
         <label class="field"><span>飲料量（L） *</span><input id="drinkLiters" type="number" min="0.5" max="10" step="0.5" placeholder="例：2.0" required></label>
         <label class="field"><span>追加連絡先（任意）</span><input id="police2Name" type="text" placeholder="別管轄の警察署・山小屋など"></label>
         <label class="field"><span>電話番号</span><input id="police2Phone" type="tel" inputmode="tel"></label>
       </div>
+      <div class="inline-note">長野県内は、YAMAPから読み取ったルートの市町村を長野県警の管轄表に照合して警察署名・代表電話を自動入力します。複数署にまたがる場合は2件まで自動入力します。</div>
     </section>
 
     <section class="step" data-step="4">
