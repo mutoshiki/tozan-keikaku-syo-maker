@@ -21,6 +21,8 @@ function json(data, status, origin) {
 const RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
+    mountainName: { type: ['string', 'null'], description: 'YAMAPのコース名や主要ピークから分かる簡潔な山名・企画名。例: 根子岳・四阿山。確信できなければnull。' },
+    areaMunicipality: { type: ['string', 'null'], description: '高い確信度で分かる山域 / 所在市町村。例: 四阿山 / 長野県上田市。確信できなければnull。' },
     durationMinutes: { type: ['integer', 'null'], description: 'YAMAP計画データに表示された合計時間を分に換算。読めなければnull。' },
     distanceKm: { type: ['number', 'null'], description: '距離km。読めなければnull。' },
     ascentM: { type: ['integer', 'null'], description: 'のぼり/上りの累積標高m。読めなければnull。' },
@@ -40,7 +42,7 @@ const RESPONSE_SCHEMA = {
     },
     warnings: { type: 'array', items: { type: 'string' }, description: '読み取りが曖昧な箇所だけ短く記載。問題なければ空配列。' },
   },
-  required: ['durationMinutes', 'distanceKm', 'ascentM', 'descentM', 'routeImageIndex', 'itinerary', 'warnings'],
+  required: ['mountainName', 'areaMunicipality', 'durationMinutes', 'distanceKm', 'ascentM', 'descentM', 'routeImageIndex', 'itinerary', 'warnings'],
 };
 
 const PROMPT = `あなたは日本の登山計画書を作成するためのYAMAPスクリーンショット解析器です。
@@ -53,6 +55,8 @@ const PROMPT = `あなたは日本の登山計画書を作成するためのYAMA
 - 地点名を推測で別の山名に変えない。日本語表示を優先する。
 - 「分岐」は行程には残してよいが major=false。それ以外の山頂、登山口、駐車場、トイレ、主要鞍部などは原則major=true。
 - 計画データ画面から合計時間、距離、のぼり、くだりを取得する。
+- mountainNameは、画面に見えるコース名・主要ピーク・行程から簡潔な山名を作る。主要な山が複数なら「・」でつなぐ。「周回コース」等のUI語は付けない。確信できなければnull。
+- areaMunicipalityは、画像内の地名または山の位置関係から高い確信度で分かる場合だけ「山域 / 都道府県市町村」の形で返す。曖昧ならnull。提出者が後で確認する前提でも、推測で別地域を埋めない。
 - routeImageIndexは、地図全体とルート線が最もよく見える元画像を選ぶ。画像の切り抜き座標は返さない。
 - 不確実な値は無理に埋めずnullまたはwarningsにする。
 - 出力は指定JSONスキーマのみ。`;

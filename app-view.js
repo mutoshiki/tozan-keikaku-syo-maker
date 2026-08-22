@@ -25,9 +25,12 @@ function renderDocument() {
   const form=getFormData();
   const major=adjustedRows().filter(r=>r.major); const start=major[0]?.adjustedTime||'—'; const goal=major.at(-1)?.adjustedTime||'—';
   $('#summary-strip').innerHTML=`<div><small>入山</small><strong>${start}</strong></div><div><small>下山</small><strong>${goal}</strong></div><div><small>距離</small><strong>${state.metrics.distanceKm??'—'} km</strong></div><div><small>上り / 下り</small><strong>${state.metrics.ascentM??'—'} / ${state.metrics.descentM??'—'} m</strong></div>`;
-  const police1 = form.police1Name || '警察署'; const police2=form.police2Name||'警察署';
   const route = state.routeImage ? `<img src="${state.routeImage}" alt="YAMAPルート地図">` : '<div class="route-placeholder">ルート画像を設定してください</div>';
   const title = form.mountainName ? `${escapeHtml(form.mountainName)}登山計画書` : '登山計画書';
+  const densityClass = major.length >= 11 ? ' journey-box--dense' : major.length >= 8 ? ' journey-box--compact' : '';
+  const extraContact = (form.police2Name || form.police2Phone)
+    ? `<p>${escapeHtml(form.police2Name || '追加連絡先')}：${escapeHtml(form.police2Phone || '（電話番号）')}</p>`
+    : '';
   $('#document-preview').innerHTML=`
   <article class="doc-page" data-page="1">
     <h1>${title}</h1><h2>≪概要≫</h2>
@@ -40,33 +43,47 @@ function renderDocument() {
     <h2>≪行程≫</h2>
     <p style="text-align:center">入山予定時刻 ${start} / 下山予定時刻 ${goal}</p>
     <p style="text-align:center">合計時間：約 ${durationLabel(state.metrics.durationMinutes)}　上り：${state.metrics.ascentM??'—'}m / 下り：${state.metrics.descentM??'—'}m　距離：${state.metrics.distanceKm??'—'}km</p>
-    <div class="journey-box">${buildJourneyHtml()}<div class="journey-legend"><span class="start">Ⓢ</span>:Start　<span class="peak">Ⓟ</span>:Peak　<span class="goal">Ⓖ</span>:Goal</div></div>
+    <div class="journey-box${densityClass}">${buildJourneyHtml()}<div class="journey-legend"><span class="start">Ⓢ</span>:Start　<span class="peak">Ⓟ</span>:Peak　<span class="goal">Ⓖ</span>:Goal</div></div>
   </article>
   <article class="doc-page" data-page="2">
-    <h2>≪ルート≫</h2><div class="route-image-frame">${route}</div>
+    <h2>≪ルート≫</h2><div class="route-image-frame route-image-frame--large">${route}</div>
     <p class="warning">※天候の急変、登山道の崩壊、熊の出没等の要因により企画続行不可能と判断した場合は、計画書のルートを使用し直ちに下山する。</p>
-    <h2>≪持参物≫</h2><div class="gear-box">□ザック　□登山靴　□雨具（レインウェアやザックカバー等）<br>□登山に適した服　□防寒着　□帽子　□飲料（${escapeHtml(form.drinkLiters||'1.5')}L 程度）　□昼食<br>□ゴミ袋（5~10L 程度のビニール袋） □行動食　□お金　□携帯電話<br>□この登山計画書（印刷したもの）　□学生証　□保険証　□時計<br>□モバイルバッテリー　□日焼け止め　□紙地図※　□コンパス※<br>□常備薬※　□ファーストエイドキット※　□ヘッドライト※<br>□その他必要な物※　□温泉セット（タオルと着替え）<br><span class="doc-muted">（※ある人は持参する）</span><br><span class="doc-muted">（登山靴は駐車場で普段履きの靴と履き替えると良い。）</span></div>
   </article>
   <article class="doc-page" data-page="3">
-    <h2 style="margin-top:25mm">≪緊急連絡先≫</h2><div class="contact-list">
+    <h2>≪持参物≫</h2><div class="gear-box">□ザック　□登山靴　□雨具（レインウェアやザックカバー等）<br>□登山に適した服　□防寒着　□帽子　□飲料（${escapeHtml(form.drinkLiters)}L 程度）　□昼食<br>□ゴミ袋（5~10L 程度のビニール袋） □行動食　□お金　□携帯電話<br>□この登山計画書（印刷したもの）　□学生証　□保険証　□時計<br>□モバイルバッテリー　□日焼け止め　□紙地図※　□コンパス※<br>□常備薬※　□ファーストエイドキット※　□ヘッドライト※<br>□その他必要な物※　□温泉セット（タオルと着替え）<br><span class="doc-muted">（※ある人は持参する）</span><br><span class="doc-muted">（登山靴は駐車場で普段履きの靴と履き替えると良い。）</span></div>
+    <h2 class="contact-heading">≪緊急連絡先≫</h2><div class="contact-list">
       <p>信州大学学生総合支援センター課外活動：${UNIVERSITY_PHONE}</p>
       <p>長野県警察本部地域部山岳安全対策課：${MOUNTAIN_SAFETY_PHONE}</p>
-      <p>${escapeHtml(police1)}：${escapeHtml(form.police1Phone||'（電話番号）')}</p>
-      <p>${escapeHtml(police2)}：${escapeHtml(form.police2Phone||'（電話番号）')}</p>
+      <p>${escapeHtml(form.police1Name)}：${escapeHtml(form.police1Phone)}</p>
+      ${extraContact}
       <p>企画者（${escapeHtml(form.plannerName)}）：${escapeHtml(form.plannerPhone)}</p>
       <p>留守本部（${escapeHtml(form.baseName)}）：${escapeHtml(form.basePhone)}</p>
     </div>
   </article>`;
 }
 
-function validateStep1() {
-  const required=['eventDate','meetingTime','meetingPlace','mountainName','areaMunicipality','plannerStudentId','plannerName','plannerPhone','baseName','basePhone'];
-  const missing=required.filter(id=>!$(`#${id}`).value.trim());
-  if(missing.length){ $(`#${missing[0]}`).focus(); return false; } return true;
+function focusFirst(ids) {
+  const id=ids.find(item=>!$(`#${item}`).value.trim());
+  if(!id) return true;
+  const el=$(`#${id}`); el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); return false;
 }
+
+function validateStep1() {
+  return focusFirst(['eventDate','meetingTime','plannerStudentId','plannerName','plannerPhone','baseName','basePhone']);
+}
+
+function validateStep3() {
+  if(!focusFirst(['mountainName','areaMunicipality','durationMinutes','distanceKm','ascentM','descentM','police1Name','police1Phone','drinkLiters'])) return false;
+  const major=adjustedRows().filter(r=>r.major && r.place.trim());
+  if(major.length<2){ window.alert('提出用の行程地点を2件以上確認してください。'); return false; }
+  if(!state.routeImage){ window.alert('提出用のルート画像を設定してください。'); return false; }
+  return true;
+}
+
 function goToStep(step) {
   if(step>1 && state.step===1 && !validateStep1()) return;
   if(step>2 && state.step===2 && !state.uploads.length) return;
+  if(step>3 && state.step===3 && !validateStep3()) return;
   state.step=Math.max(1,Math.min(4,step));
   $$('.step').forEach(el=>el.classList.toggle('is-active',Number(el.dataset.step)===state.step));
   $$('.progress__step').forEach((el,i)=>{ const n=i+1; el.classList.toggle('is-current',n===state.step); el.classList.toggle('is-complete',n<state.step); });
@@ -79,6 +96,58 @@ async function addFiles(files) {
   renderUploads(); $('#analyze-button').disabled=!state.uploads.length;
 }
 
+const PLANNER_STORAGE_KEY='tozanPlannerProfileV1';
+function loadPlannerProfile(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(PLANNER_STORAGE_KEY)||'null');
+    if(!saved) return;
+    for(const id of ['plannerStudentId','plannerName','plannerPhone']) if(saved[id]) $(`#${id}`).value=saved[id];
+    $('#rememberPlanner').checked=true;
+  }catch(error){ console.warn('企画者情報の読み込みに失敗しました',error); }
+}
+function savePlannerProfile(){
+  if(!$('#rememberPlanner').checked) return;
+  const data=Object.fromEntries(['plannerStudentId','plannerName','plannerPhone'].map(id=>[id,$(`#${id}`).value.trim()]));
+  try{ localStorage.setItem(PLANNER_STORAGE_KEY,JSON.stringify(data)); }catch(error){ console.warn('企画者情報の保存に失敗しました',error); }
+}
+
+function waitForImages(root){
+  return Promise.all($$('img',root).map(img=>img.complete ? Promise.resolve() : new Promise(resolve=>{img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});})));
+}
+function nextFrame(){ return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))); }
+function safeFilename(value){ return String(value||'未設定').replace(/[\\/:*?"<>|]/g,'_').trim()||'未設定'; }
+
+async function downloadPdf(){
+  const button=$('#print-button');
+  const oldText=button.textContent;
+  button.disabled=true; button.textContent='PDFを作成中…';
+  try{
+    if(!window.html2canvas || !window.jspdf?.jsPDF) throw new Error('PDF生成ライブラリを読み込めませんでした。通信状態を確認してください。');
+    renderDocument();
+    await document.fonts?.ready;
+    await waitForImages($('#document-preview'));
+    document.body.classList.add('is-pdf-export');
+    await nextFrame();
+    const pages=$$('.doc-page',$('#document-preview'));
+    const { jsPDF }=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+    for(let i=0;i<pages.length;i+=1){
+      const page=pages[i];
+      const canvas=await window.html2canvas(page,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false,width:page.scrollWidth,height:page.scrollHeight,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
+      if(i>0) pdf.addPage('a4','portrait');
+      const image=canvas.toDataURL('image/jpeg',0.94);
+      pdf.addImage(image,'JPEG',0,0,210,297,undefined,'FAST');
+    }
+    pdf.save(`登山計画書_${safeFilename($('#mountainName').value)}.pdf`);
+  }catch(error){
+    console.error(error);
+    window.alert(`PDF作成に失敗しました：${error.message}`);
+  }finally{
+    document.body.classList.remove('is-pdf-export');
+    button.disabled=false; button.textContent=oldText;
+  }
+}
+
 function bind() {
   $('#file-input').addEventListener('change',e=>addFiles([...e.target.files]));
   const dz=$('#drop-zone'); dz.addEventListener('dragover',e=>{e.preventDefault();}); dz.addEventListener('drop',e=>{e.preventDefault();addFiles([...e.dataTransfer.files]);});
@@ -87,8 +156,11 @@ function bind() {
   $('#add-row').onclick=()=>{state.itinerary.push({time:'12:00',place:'',major:true,restMinutes:0});state.itinerary.sort((a,b)=>a.time.localeCompare(b.time));renderItinerary();};
   $('#back-button').onclick=()=>goToStep(state.step-1); $('#next-button').onclick=()=>goToStep(state.step+1);
   $$('.progress__step').forEach(btn=>btn.onclick=()=>{ const n=Number(btn.dataset.stepTarget); if(n<=state.step || n===state.step+1)goToStep(n); });
-  $('#print-button').onclick=()=>{ document.title=`登山計画書_${$('#mountainName').value||'未設定'}`; window.__printRequested=true; window.print(); };
+  $('#print-button').onclick=downloadPdf;
+  const remember=$('#rememberPlanner');
+  remember.onchange=()=>{ if(remember.checked) savePlannerProfile(); else localStorage.removeItem(PLANNER_STORAGE_KEY); };
+  ['plannerStudentId','plannerName','plannerPhone'].forEach(id=>$(`#${id}`).addEventListener('input',savePlannerProfile));
 }
 
-bind(); syncMetricInputs(); renderItinerary();
-window.__tozanApp = { state, parseMetrics, parseItinerary, classifyText, adjustedRows, renderDocument, goToStep };
+bind(); loadPlannerProfile(); syncMetricInputs(); renderItinerary();
+window.__tozanApp = { state, parseMetrics, parseItinerary, classifyText, adjustedRows, renderDocument, goToStep, downloadPdf, validateStep3 };

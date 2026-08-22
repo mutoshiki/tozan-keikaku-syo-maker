@@ -30,6 +30,8 @@ function normalizeVisionResult(result) {
       _confidence: 10,
     })) : [];
   return {
+    mountainName: typeof result.mountainName === 'string' ? result.mountainName.trim() : '',
+    areaMunicipality: typeof result.areaMunicipality === 'string' ? result.areaMunicipality.trim() : '',
     metrics: {
       durationMinutes: Number.isFinite(Number(result.durationMinutes)) ? Number(result.durationMinutes) : null,
       distanceKm: Number.isFinite(Number(result.distanceKm)) ? Number(result.distanceKm) : null,
@@ -52,6 +54,9 @@ async function analyzeUploads() {
     const result = normalizeVisionResult(raw);
     state.metrics = result.metrics;
     state.itinerary = result.itinerary.sort((a,b) => a.time.localeCompare(b.time));
+
+    if (!$('#mountainName').value.trim() && result.mountainName) $('#mountainName').value = result.mountainName;
+    if (!$('#areaMunicipality').value.trim() && result.areaMunicipality) $('#areaMunicipality').value = result.areaMunicipality;
 
     state.uploads.forEach((upload, index) => {
       upload.classification = index === result.routeImageIndex ? 'metrics' : 'itinerary';
