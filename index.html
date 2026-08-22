@@ -7,7 +7,7 @@
   <meta name="description" content="YAMAPのスクリーンショットから信州大学山歩会の登山計画書を作成します。" />
   <title>登山計画書メーカー</title>
   <link rel="stylesheet" href="./styles.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js"></script>
+  <script defer src="./config.js"></script>
   <script defer src="./app-core.js"></script>
   <script defer src="./app-flow.js"></script>
   <script defer src="./app-view.js"></script>
@@ -21,7 +21,7 @@
   <main class="app-shell">
     <section class="intro">
       <h1>登山計画書を作成</h1>
-      <p>基本情報を入力し、YAMAPのスクリーンショットを追加すると、行程・距離・標高差を読み取って提出用の計画書にまとめます。</p>
+      <p>基本情報を入力し、YAMAPのスクリーンショットを追加すると、画像理解AIが行程・距離・標高差を読み取って提出用の計画書にまとめます。</p>
     </section>
 
     <nav class="progress" aria-label="作成手順">
@@ -70,12 +70,12 @@
     </section>
 
     <section class="step" data-step="2">
-      <div class="step-heading"><h2>YAMAPスクリーンショット</h2><p>計画データ画面と行程画面をまとめて追加してください。順番は問いません。</p></div>
+      <div class="step-heading"><h2>YAMAPスクリーンショット</h2><p>計画データ画面・ルート地図・行程画面をまとめて追加してください。順番は問いません。YAMAP画像だけを画像理解AIへ送ります。</p></div>
       <label class="drop-zone" id="drop-zone">
         <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
         <span class="drop-zone__icon" aria-hidden="true">＋</span>
         <strong>画像を追加</strong>
-        <small>PNG / JPEG / WebP・複数選択可</small>
+        <small>PNG / JPEG / WebP・最大8枚</small>
       </label>
       <div id="upload-list" class="upload-grid"></div>
       <div id="analysis-status" class="notification is-hidden" role="status"></div>
@@ -83,7 +83,7 @@
     </section>
 
     <section class="step" data-step="3">
-      <div class="step-heading"><h2>読み取り結果を確認</h2><p>誤読だけ直してください。「分岐」は初期状態では提出用の主要地点から外します。</p></div>
+      <div class="step-heading"><h2>読み取り結果を確認</h2><p>画像理解AIの結果を確認してください。「分岐」は初期状態では提出用の主要地点から外します。</p></div>
       <div class="metrics-grid">
         <label class="field"><span>合計時間（分）</span><input id="durationMinutes" type="number" min="0"></label>
         <label class="field"><span>距離（km）</span><input id="distanceKm" type="number" step="0.1" min="0"></label>

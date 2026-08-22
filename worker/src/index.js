@@ -59,11 +59,16 @@ const PROMPT = `あなたは日本の登山計画書を作成するためのYAMA
 
 async function callGemini(images, apiKey) {
   const parts = [{ text: PROMPT }];
-  for (const image of images) parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
+  for (const image of images) {
+    parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
+  }
 
   const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
     body: JSON.stringify({
       contents: [{ role: 'user', parts }],
       generationConfig: {
@@ -78,56 +83,46 @@ async function callGemini(images, apiKey) {
   });
 
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload?.error?.message || `Gemini API error ${response.status}`);
+  if (!response.ok) {
+    const detail = payload?.error?.message || `Gemini API error ${response.status}`;
+    throw new Error(detail);
+  }
   const text = payload?.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('') || '';
   if (!text) throw new Error('Geminiから解析結果が返りませんでした。');
   return JSON.parse(text);
-}
-
-function bytesToBase64(bytes) {
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  return btoa(binary);
-}
-
-async function fetchQaFixture(name) {
-  const url = `https://raw.githubusercontent.com/mutoshiki/tozan-keikaku-syo-maker/feat/gemini-vision-worker/qa/fixtures/${name}.webp`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`QA fixture ${name} fetch failed: ${response.status}`);
-  return { mimeType: 'image/webp', data: bytesToBase64(new Uint8Array(await response.arrayBuffer())) };
 }
 
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
     const url = new URL(request.url);
+
     if (request.method === 'OPTIONS') {
       if (!ALLOWED_ORIGINS.has(origin)) return json({ error: 'Origin not allowed' }, 403, origin);
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
-    if (url.pathname === '/health' && request.method === 'GET') return json({ ok: true, geminiConfigured: Boolean(env.GEMINI_API_KEY) }, 200, origin);
-    if (url.pathname === '/qa' && request.method === 'GET') {
-      if (!env.GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY がWorkerに設定されていません。' }, 503, origin);
-      try {
-        const images = await Promise.all(['metrics','itin1','itin2'].map(fetchQaFixture));
-        return json({ qa: 'real-yamap-crops', result: await callGemini(images, env.GEMINI_API_KEY) }, 200, origin);
-      } catch (error) {
-        console.error(error);
-        return json({ error: error?.message || 'QA failed' }, 500, origin);
-      }
+
+    if (url.pathname === '/health' && request.method === 'GET') {
+      return json({ ok: true, geminiConfigured: Boolean(env.GEMINI_API_KEY) }, 200, origin);
     }
-    if (url.pathname !== '/analyze' || request.method !== 'POST') return json({ error: 'Not found' }, 404, origin);
+
+    if (url.pathname !== '/analyze' || request.method !== 'POST') {
+      return json({ error: 'Not found' }, 404, origin);
+    }
     if (!ALLOWED_ORIGINS.has(origin)) return json({ error: 'Origin not allowed' }, 403, origin);
     if (!env.GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY がWorkerに設定されていません。' }, 503, origin);
+
     try {
       const body = await request.json();
       const images = Array.isArray(body.images) ? body.images : [];
       if (!images.length || images.length > 8) return json({ error: 'YAMAP画像を1〜8枚送ってください。' }, 400, origin);
       for (const image of images) {
-        if (!/^image\/(png|jpeg|webp)$/.test(image?.mimeType || '') || typeof image?.data !== 'string' || !image.data) return json({ error: '画像形式が不正です。PNG/JPEG/WebPを使用してください。' }, 400, origin);
+        if (!/^image\/(png|jpeg|webp)$/.test(image?.mimeType || '') || typeof image?.data !== 'string' || !image.data) {
+          return json({ error: '画像形式が不正です。PNG/JPEG/WebPを使用してください。' }, 400, origin);
+        }
       }
-      return json(await callGemini(images, env.GEMINI_API_KEY), 200, origin);
+      const result = await callGemini(images, env.GEMINI_API_KEY);
+      return json(result, 200, origin);
     } catch (error) {
       console.error(error);
       return json({ error: error?.message || '画像解析に失敗しました。' }, 500, origin);
