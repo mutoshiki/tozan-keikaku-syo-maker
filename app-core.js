@@ -71,7 +71,10 @@ function cleanPlace(input = '') {
     .trim();
   s = s.replace(/[六官]平牧場公衆トイレ/g, '菅平牧場公衆トイレ');
   s = s.replace(/[六官]平牧場/g, '菅平牧場');
-  s = s.replace(/四阿山登山口\s*\(中四阿経由\)/g, '四阿山登山口（中四阿経由）');
+  s = s.replace(/四阿山登山口\s*[（(]\s*中四阿経由\s*[）)]/g, '四阿山登山口（中四阿経由）');
+  s = s.replace(/費の河原/g, '賽の河原');
+  s = s.replace(/J\s+バンド/gi, 'Jバンド');
+  s = s.replace(/^の(?=[一-龯ぁ-んァ-ヶ])/,'');
   return s;
 }
 
@@ -79,6 +82,7 @@ function isPlaceCandidate(input = '') {
   const s = cleanPlace(input);
   if (s.length < 2 || s.length > 40) return false;
   if (!/[一-龯ぁ-んァ-ヶ]/.test(s)) return false;
+  if (/[A-Za-z]{2,}/.test(s) && !/^Jバンド$/i.test(s)) return false;
   if (PLACE_NOISE.some(n => s.includes(n))) return false;
   if (/^\d/.test(s)) return false;
   if (/^(?:\d+\s*)?(?:時間|分)$/.test(s) || /\d+\s*(?:時間|分)/.test(s)) return false;
