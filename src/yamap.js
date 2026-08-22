@@ -11,11 +11,11 @@ export function parseMetrics(rawText = '') {
   const text = normalizeOcrText(rawText);
   const compact = text.replace(/\s+/g, ' ');
 
-  const durationColon = compact.match(/(?:タイム|合計[^0-9]{0,12})?(\d{1,2})\s*[:：]\s*(\d{2})/);
-  const durationWords = compact.match(/(?:合計時間|タイム)[^0-9]{0,12}(\d{1,2})\s*時間\s*(\d{1,2})\s*分/);
-  const distance = compact.match(/(?:距離[^0-9]{0,12})?(\d+(?:\.\d+)?)\s*km/i);
-  const ascent = compact.match(/(?:のぼり|上り|登り)[^0-9]{0,12}(\d{2,5})\s*m/i);
-  const descent = compact.match(/(?:くだり|下り)[^0-9]{0,12}(\d{2,5})\s*m/i);
+  const durationColon = compact.match(/(?:タイム|合計時間)[^0-9]{0,16}(\d{1,2})\s*:\s*(\d{2})/);
+  const durationWords = compact.match(/(?:合計時間|タイム)[^0-9]{0,16}(\d{1,2})\s*時間\s*(\d{1,2})\s*分/);
+  const distance = compact.match(/距離[^0-9]{0,16}(\d+(?:\.\d+)?)\s*km/i);
+  const ascent = compact.match(/(?:のぼり|上り|登り)[^0-9]{0,16}(\d{2,5})\s*m/i);
+  const descent = compact.match(/(?:くだり|下り)[^0-9]{0,16}(\d{2,5})\s*m/i);
 
   let durationMinutes = null;
   if (durationWords) durationMinutes = Number(durationWords[1]) * 60 + Number(durationWords[2]);
