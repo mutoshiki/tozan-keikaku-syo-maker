@@ -69,7 +69,7 @@ async function callGemini(images, apiKey) {
       generationConfig: {
         responseFormat: {
           text: {
-            mimeType: 'application/json',
+            mimeType: 'APPLICATION_JSON',
             schema: RESPONSE_SCHEMA,
           },
         },
