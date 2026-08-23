@@ -33,7 +33,8 @@ function getFormData() {
 function formatDateJP(value) {
   if (!value) return '';
   const d = new Date(`${value}T00:00:00`);
-  const wd = ['日','月','火','水','木','金','土'];
+  const wd = ['日','月','火','水','木','土'];
+  wd.splice(5,0,'金');
   return `${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日（${wd[d.getDay()]}曜日）`;
 }
 function durationLabel(min) {
@@ -230,7 +231,6 @@ function bind() {
   $$('.progress__step').forEach(btn => btn.onclick = () => { const n = Number(btn.dataset.stepTarget); if (n <= state.step) goToStep(n); });
   $('#rememberContacts').onchange = () => { if ($('#rememberContacts').checked) saveContacts(); else localStorage.removeItem(CONTACT_STORAGE_KEY); };
   CONTACT_IDS.forEach(id => $(`#${id}`).addEventListener('input', saveContacts));
-  $('#areaMunicipality').addEventListener('change', () => applyPoliceFromRoute([], $('#areaMunicipality').value));
 }
 
 bind();
