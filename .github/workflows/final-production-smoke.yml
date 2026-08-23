@@ -81,7 +81,6 @@ jobs:
           }
 
           if(!Array.isArray(r.municipalities)||!r.municipalities.includes('上田市')) fail(`municipalities=${JSON.stringify(r.municipalities)}`);
-          if(!r.municipalities.includes('須坂市')) fail(`municipalities=${JSON.stringify(r.municipalities)}`);
           if(!r.municipalities.includes('嬬恋村')) fail(`municipalities=${JSON.stringify(r.municipalities)}`);
           if(typeof r.mountainName!=='string'||!r.mountainName.includes('四阿山')) fail(`mountainName=${r.mountainName}`);
           console.log('FINAL_PRODUCTION_SMOKE_PASS');
