@@ -8,7 +8,9 @@ function renderItinerary() {
   const adjusted = adjustedRows();
   state.itinerary.forEach((row,index) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><input class="row-time" type="time" value="${row.time}"><div class="adjusted">${adjusted[index]?.adjustedTime || row.time}</div></td><td><input class="row-place" type="text" value="${escapeHtml(row.place)}"></td><td><input class="row-major" type="checkbox" ${row.major ? 'checked' : ''} aria-label="行程に含める"></td><td><input class="row-rest" type="number" min="0" step="5" value="${Number(row.restMinutes || 0)}" aria-label="休憩分"></td><td><button class="btn btn--danger-ghost row-remove" type="button">削除</button></td>`;
+    const adjustedTime = adjusted[index]?.adjustedTime || row.time;
+    const adjustedMarkup = adjustedTime !== row.time ? `<div class="adjusted">→ ${adjustedTime}</div>` : '';
+    tr.innerHTML = `<td><input class="row-time" type="time" value="${row.time}">${adjustedMarkup}</td><td><input class="row-place" type="text" value="${escapeHtml(row.place)}"></td><td><input class="row-major" type="checkbox" ${row.major ? 'checked' : ''} aria-label="行程に掲載"></td><td><input class="row-rest" type="number" min="0" step="5" value="${Number(row.restMinutes || 0)}" aria-label="休憩分"></td><td><button class="btn btn--danger-ghost row-remove" type="button">削除</button></td>`;
     $('.row-time',tr).onchange = e => { row.time = e.target.value; state.itinerary.sort((a,b)=>a.time.localeCompare(b.time)); renderItinerary(); };
     $('.row-place',tr).oninput = e => { row.place = e.target.value; };
     $('.row-major',tr).onchange = e => { row.major = e.target.checked; };
