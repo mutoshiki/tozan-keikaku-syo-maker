@@ -10,13 +10,14 @@ async function seedPlan(page) {
     const values = {
       eventDate:'2026-08-21',meetingTime:'05:00',meetingPlace:'信州大学 松本キャンパス サークルボックス前',rainPolicy:'雨天中止',
       plannerStudentId:'TEST-001',plannerName:'企画 太郎',plannerPhone:'090-1111-2222',baseName:'留守 花子',basePhone:'090-3333-4444',
-      mountainName:'根子岳・四阿山',areaMunicipality:'上田市・須坂市・嬬恋村',
-      police1Name:'上田警察署',police1Phone:'0268-22-0110',police2Name:'須坂警察署',police2Phone:'026-246-0110',police3Name:'長野原警察署',police3Phone:'0279-82-0110',drinkLiters:'2.0',
-      durationMinutes:'370',distanceKm:'9.5',ascentM:'987',descentM:'988'
+      mountainName:'根子岳・四阿山',drinkLiters:'2.0',durationMinutes:'370',distanceKm:'9.5',ascentM:'987',descentM:'988'
     };
     for (const [id,value] of Object.entries(values)) document.getElementById(id).value = value;
-    document.getElementById('police-secondary').classList.remove('is-hidden');
-    document.getElementById('police-tertiary').classList.remove('is-hidden');
+    const municipalities=['長野県上田市','須坂市','群馬県嬬恋村'];
+    const area=municipalityArea(municipalities,'志賀高原・菅平高原山域 / 長野県上田市・須坂市・群馬県嬬恋村');
+    document.getElementById('areaMunicipality').value=area;
+    applyPoliceFromRoute(municipalities,area);
+
     const c=document.createElement('canvas');c.width=540;c.height=1170;const ctx=c.getContext('2d');
     ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#f4f4f4';ctx.fillRect(30,80,480,850);
     ctx.strokeStyle='#555';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(70,780);ctx.bezierCurveTo(180,130,360,760,480,220);ctx.stroke();
@@ -79,6 +80,24 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
 
   await seedPlan(page);
   await expect(page.locator('.step[data-step="3"]')).toBeVisible();
+  await expect(page.locator('#areaMunicipality')).toHaveValue('上田市・須坂市・嬬恋村');
+  await expect(page.locator('#police1Name')).toHaveValue('上田警察署');
+  await expect(page.locator('#police1Phone')).toHaveValue('0268-22-0110');
+  await expect(page.locator('#police2Name')).toHaveValue('須坂警察署');
+  await expect(page.locator('#police3Name')).toHaveValue('長野原警察署');
+
+  await page.fill('#areaMunicipality','上田市・嬬恋村');
+  await page.fill('#police1Name','確認後の警察署');
+  await page.fill('#police1Phone','000-0000-0000');
+  await expect(page.locator('#areaMunicipality')).toHaveValue('上田市・嬬恋村');
+  await expect(page.locator('#police1Name')).toHaveValue('確認後の警察署');
+  await expect(page.locator('#police1Phone')).toHaveValue('000-0000-0000');
+
+  // PDF検証用に自動入力値へ戻す。
+  await page.fill('#areaMunicipality','上田市・須坂市・嬬恋村');
+  await page.fill('#police1Name','上田警察署');
+  await page.fill('#police1Phone','0268-22-0110');
+
   await expect(page.locator('#route-preview img')).toHaveCount(1);
   await page.screenshot({path:'test-results/ui-desktop.png',fullPage:true});
 
