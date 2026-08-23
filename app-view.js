@@ -119,13 +119,36 @@ function goToStep(step) {
   window.scrollTo({top:0,behavior:'instant'});
 }
 
-async function addFiles(files) {
-  for (const file of files) {
-    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) continue;
-    state.uploads.push({id:crypto.randomUUID(),name:file.name,url:await readFileAsDataUrl(file),classification:'pending',routeSource:false});
+function hasUpload(kind) {
+  return state.uploads.some(upload => upload.kind === kind);
+}
+function canAnalyzeUploads() {
+  return hasUpload('route') && hasUpload('itinerary');
+}
+
+async function addFiles(files, kind) {
+  const valid = files.filter(file => /^image\/(png|jpeg|webp)$/.test(file.type));
+  if (!valid.length) return;
+
+  if (kind === 'route') {
+    const file = valid[0];
+    const upload = {id:crypto.randomUUID(),name:file.name,url:await readFileAsDataUrl(file),kind:'route',classification:'route',routeSource:true};
+    state.uploads = [upload, ...state.uploads.filter(item => item.kind !== 'route')];
+    state.routeImage = upload.url;
+  } else {
+    for (const file of valid) {
+      state.uploads.push({id:crypto.randomUUID(),name:file.name,url:await readFileAsDataUrl(file),kind:'itinerary',classification:'itinerary',routeSource:false});
+    }
   }
+
   renderUploads();
-  if (state.uploads.length) await analyzeUploads();
+  renderRoutePreview();
+  $('#step2-next').disabled = true;
+  if (canAnalyzeUploads()) await analyzeUploads();
+  else {
+    $('#analysis-status').classList.add('is-hidden');
+    if (!hasUpload('itinerary')) state.itinerary = [];
+  }
 }
 
 const CONTACT_STORAGE_KEY = 'tozanContactsV2';
@@ -183,11 +206,20 @@ async function downloadPdf() {
   }
 }
 
+function bindDropZone(zoneSelector, inputSelector, kind) {
+  const input = $(inputSelector);
+  const zone = $(zoneSelector);
+  input.addEventListener('change', async e => {
+    await addFiles([...e.target.files], kind);
+    e.target.value = '';
+  });
+  zone.addEventListener('dragover', e => e.preventDefault());
+  zone.addEventListener('drop', e => { e.preventDefault(); addFiles([...e.dataTransfer.files], kind); });
+}
+
 function bind() {
-  $('#file-input').addEventListener('change', e => addFiles([...e.target.files]));
-  const dz = $('#drop-zone');
-  dz.addEventListener('dragover', e => e.preventDefault());
-  dz.addEventListener('drop', e => { e.preventDefault(); addFiles([...e.dataTransfer.files]); });
+  bindDropZone('#route-drop-zone','#route-file-input','route');
+  bindDropZone('#itinerary-drop-zone','#itinerary-file-input','itinerary');
   ['durationMinutes','distanceKm','ascentM','descentM'].forEach(key => $(`#${key}`).addEventListener('input', e => { state.metrics[key] = e.target.value === '' ? null : Number(e.target.value); }));
   $('#add-row').onclick = () => { state.itinerary.push({time:'12:00',place:'',major:true,restMinutes:0}); state.itinerary.sort((a,b)=>a.time.localeCompare(b.time)); renderItinerary(); };
   $('#step1-next').onclick = () => goToStep(2);
@@ -205,4 +237,4 @@ bind();
 loadContacts();
 syncMetricInputs();
 renderItinerary();
-window.__tozanApp = { state, adjustedRows, renderDocument, goToStep, downloadPdf, validateStep3, resolveNaganoPoliceStations };
+window.__tozanApp = { state, adjustedRows, renderDocument, goToStep, downloadPdf, validateStep3, resolveNaganoPoliceStations, addFiles, canAnalyzeUploads };
