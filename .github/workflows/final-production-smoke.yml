@@ -1,0 +1,89 @@
+name: Final production Gemini smoke
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Analyze real YAMAP screenshots in production
+        shell: bash
+        run: |
+          set -euo pipefail
+          blob() {
+            curl --fail --silent --show-error \
+              "https://api.github.com/repos/mutoshiki/tozan-keikaku-syo-maker/git/blobs/$1" \
+              | jq -r '.content' | tr -d '\n'
+          }
+
+          METRICS="$(blob a550acf6f5a2be6431378d716b7a486c7d0df0a0)"
+          ITIN1="$(blob 94575add85fbb5a3674ccb14124bf2414191f916)"
+          ITIN2="$(blob f4c5a3a46882802b2edfb40ef66a112d12d17980)"
+
+          jq -n --arg metrics "$METRICS" --arg itin1 "$ITIN1" --arg itin2 "$ITIN2" \
+            '{images:[
+              {mimeType:"image/webp",data:$metrics},
+              {mimeType:"image/webp",data:$itin1},
+              {mimeType:"image/webp",data:$itin2}
+            ]}' > /tmp/payload.json
+
+          success=0
+          for attempt in $(seq 1 8); do
+            code="$(curl --silent --show-error \
+              -o /tmp/result.json -w '%{http_code}' \
+              -H 'Origin: https://mutoshiki.github.io' \
+              -H 'Content-Type: application/json' \
+              --data-binary @/tmp/payload.json \
+              'https://tozan-keikaku-syo-maker.610unko.workers.dev/analyze' || true)"
+            cat /tmp/result.json || true
+            if [ "$code" = "200" ] && jq -e 'has("municipalities") and (.itinerary|length >= 10)' /tmp/result.json >/dev/null 2>&1; then
+              success=1
+              break
+            fi
+            echo "Attempt $attempt returned HTTP $code or an old/incomplete result; retrying..."
+            sleep 20
+          done
+          [ "$success" = "1" ] || { echo 'Production Worker did not return a valid current result'; exit 1; }
+
+          node - <<'NODE'
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('/tmp/result.json','utf8'));
+          const fail=m=>{console.error(m);process.exit(1)};
+          const norm=t=>{
+            const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);
+            return m ? `${m[1].padStart(2,'0')}:${m[2]}` : String(t||'');
+          };
+
+          if(r.durationMinutes!==370) fail(`durationMinutes=${r.durationMinutes}`);
+          if(Number(r.distanceKm)!==9.5) fail(`distanceKm=${r.distanceKm}`);
+          if(Number(r.ascentM)!==987) fail(`ascentM=${r.ascentM}`);
+          if(Number(r.descentM)!==988) fail(`descentM=${r.descentM}`);
+          if(r.routeImageIndex!==0) fail(`routeImageIndex=${r.routeImageIndex}`);
+          if(!Array.isArray(r.itinerary)||r.itinerary.length!==13) fail(`itinerary length=${r.itinerary?.length}`);
+
+          const points=r.itinerary.map(row=>[norm(row.time),row.place]);
+          const must=[
+            ['07:00','菅平牧場公衆トイレ'],
+            ['09:00','根子岳'],
+            ['10:45','四阿山'],
+            ['11:35','中四阿'],
+            ['12:05','小四阿'],
+            ['13:10','菅平牧場公衆トイレ']
+          ];
+          for(const expected of must) {
+            if(!points.some(p=>p[0]===expected[0]&&p[1]===expected[1])) fail(`missing ${expected.join(' ')}`);
+          }
+
+          if(!Array.isArray(r.municipalities)||!r.municipalities.includes('上田市')) fail(`municipalities=${JSON.stringify(r.municipalities)}`);
+          if(!r.municipalities.includes('須坂市')) fail(`municipalities=${JSON.stringify(r.municipalities)}`);
+          if(!r.municipalities.includes('嬬恋村')) fail(`municipalities=${JSON.stringify(r.municipalities)}`);
+          if(typeof r.mountainName!=='string'||!r.mountainName.includes('四阿山')) fail(`mountainName=${r.mountainName}`);
+          console.log('FINAL_PRODUCTION_SMOKE_PASS');
+          console.log(JSON.stringify({mountainName:r.mountainName,areaMunicipality:r.areaMunicipality,municipalities:r.municipalities}));
+          NODE
