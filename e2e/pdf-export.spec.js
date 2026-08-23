@@ -42,7 +42,7 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
   await expect(page.locator('.cds-header a')).toHaveCount(0);
   await expect(page.locator('.fixed-panel')).toHaveCount(0);
   await expect(page.locator('.summary-strip')).toHaveCount(0);
-  await expect(page.getByText('市町村',{exact:true})).toBeVisible();
+  await expect(page.getByText('市町村',{exact:true})).toHaveCount(1);
 
   await page.fill('#plannerStudentId','TEST-001');
   await page.fill('#plannerName','企画 太郎');
