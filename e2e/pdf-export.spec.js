@@ -109,6 +109,35 @@ test('guided YAMAP step separates route and itinerary images', async ({ page }) 
   await expect(page.locator('#police3Name')).toHaveValue('長野原警察署');
 });
 
+test('itinerary stays at normal reading size while page one has room', async ({ page }) => {
+  await page.goto('/');
+  await seedPlan(page);
+  await page.evaluate(() => {
+    window.__tozanApp.state.itinerary = [
+      {time:'06:30',place:'雨飾高原登山口',major:true,restMinutes:0},
+      {time:'06:30',place:'雨飾高原登山口トイレ',major:true,restMinutes:0},
+      {time:'06:30',place:'雨飾高原キャンプ場駐車場',major:true,restMinutes:0},
+      {time:'08:05',place:'標高1445m地点',major:true,restMinutes:0},
+      {time:'09:35',place:'笹平',major:true,restMinutes:0},
+      {time:'10:05',place:'雨飾山',major:true,restMinutes:0},
+      {time:'10:30',place:'笹平',major:true,restMinutes:0},
+      {time:'11:30',place:'標高1445m地点',major:true,restMinutes:0},
+      {time:'12:50',place:'雨飾高原登山口',major:true,restMinutes:0},
+      {time:'12:50',place:'雨飾高原キャンプ場駐車場',major:true,restMinutes:0}
+    ];
+    window.__tozanApp.renderDocument();
+    window.__tozanApp.fitJourneyToPage();
+  });
+  const page1=page.locator('.doc-page[data-page="1"]');
+  const box=page.locator('.doc-page[data-page="1"] .journey-box');
+  const fits=await page1.evaluate(el=>el.scrollHeight<=el.clientHeight+1);
+  expect(fits).toBe(true);
+  await expect(box).not.toHaveClass(/journey-box--dense/);
+  const fontSize=await box.evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+  expect(fontSize).toBeGreaterThanOrEqual(13);
+  await page1.screenshot({path:'test-results/page-1-readable-itinerary.png'});
+});
+
 test('simplified Carbon flow keeps editable auto-filled fields and generates a three-page PDF', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.progress__step')).toHaveCount(3);
@@ -200,13 +229,42 @@ test('simplified Carbon flow keeps editable auto-filled fields and generates a t
   await page.locator('.doc-page[data-page="3"]').screenshot({path:'test-results/page-3.png'});
 
   const downloadPromise=page.waitForEvent('download');
-  await page.getByRole('button',{name:'PDFを作成'}).click();
+  await page.getByRole('button',{name:'PDFを共有'}).click();
   const download=await downloadPromise;
   const output='test-results/generated-plan.pdf';
   await download.saveAs(output);
   const data=fs.readFileSync(output);
   expect(data.length).toBeGreaterThan(100_000);
   expect(pdfPageCount(data)).toBe(3);
+});
+
+test('share-capable mobile browser opens native PDF share without losing uploads', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:({files})=>Array.isArray(files)&&files.length===1&&files[0].type==='application/pdf'});
+    Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{
+      window.__sharedPdf={name:data.files?.[0]?.name,size:data.files?.[0]?.size,type:data.files?.[0]?.type};
+    }});
+  });
+  await page.goto('/');
+  await seedPlan(page);
+  await page.evaluate(() => {
+    const app=window.__tozanApp;
+    const image=app.state.routeImage;
+    app.state.uploads=[
+      {id:'route-test',name:'route.png',url:image,kind:'route',classification:'route',routeSource:true},
+      {id:'itin-test',name:'itinerary.png',url:image,kind:'itinerary',classification:'itinerary',routeSource:false}
+    ];
+  });
+  const beforeUrl=page.url();
+  const beforeCount=await page.evaluate(()=>window.__tozanApp.state.uploads.length);
+  await page.getByRole('button',{name:'PDFを共有'}).click();
+  await expect.poll(()=>page.evaluate(()=>window.__sharedPdf||null)).not.toBeNull();
+  const shared=await page.evaluate(()=>window.__sharedPdf);
+  expect(shared.type).toBe('application/pdf');
+  expect(shared.size).toBeGreaterThan(100_000);
+  expect(page.url()).toBe(beforeUrl);
+  expect(await page.evaluate(()=>window.__tozanApp.state.uploads.length)).toBe(beforeCount);
+  await expect(page.locator('#route-preview img')).toHaveCount(1);
 });
 
 test('mobile layout has no horizontal page overflow', async ({ page }) => {
