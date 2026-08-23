@@ -3,164 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#161616" />
+  <meta name="theme-color" content="#ffffff" />
   <meta name="description" content="YAMAPから登山計画書を作成します。" />
+  <script>
+    (() => {
+      const key = 'sanpokai-theme-preference-v1';
+      let preference = 'system';
+      try {
+        const stored = localStorage.getItem(key);
+        if (stored === 'system' || stored === 'light' || stored === 'dark') preference = stored;
+      } catch (_) {}
+      const systemDark = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const dark = preference === 'dark' || (preference === 'system' && systemDark);
+      document.documentElement.dataset.carbonTheme = dark ? 'g100' : 'white';
+      document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = dark ? '#161616' : '#ffffff';
+    })();
+  </script>
   <title>登山計画書メーカー</title>
-  <link rel="stylesheet" href="./styles.css" />
-  <link rel="stylesheet" href="./export-fixes.css" />
-  <script defer src="./config.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
-  <script defer src="./app-core.js"></script>
-  <script defer src="./app-flow.js"></script>
-  <script defer src="./app-view.js"></script>
-  <script defer src="./app-share.js"></script>
 </head>
 <body>
-  <header class="cds-header">
-    <div class="cds-header__name">登山計画書メーカー</div>
-  </header>
-
-  <main class="app-shell">
-    <h1>登山計画書</h1>
-
-    <nav class="progress" aria-label="作成手順">
-      <button class="progress__step is-current" data-step-target="1" type="button"><span class="progress__dot"></span><span>基本情報</span></button>
-      <button class="progress__step" data-step-target="2" type="button"><span class="progress__dot"></span><span>YAMAP</span></button>
-      <button class="progress__step" data-step-target="3" type="button"><span class="progress__dot"></span><span>確認</span></button>
-    </nav>
-
-    <section class="step is-active" data-step="1">
-      <div class="section-grid">
-        <h2>基本情報</h2>
-        <div class="section-body">
-          <div class="form-grid form-grid--2">
-            <label class="field"><span>実施日</span><input id="eventDate" type="date" required></label>
-            <label class="field"><span>集合時間</span><input id="meetingTime" type="time" value="05:00" required></label>
-          </div>
-
-          <h3>企画者</h3>
-          <div class="form-grid form-grid--3">
-            <label class="field"><span>学籍番号</span><input id="plannerStudentId" type="text" required></label>
-            <label class="field"><span>氏名</span><input id="plannerName" type="text" required></label>
-            <label class="field"><span>電話番号</span><input id="plannerPhone" type="tel" inputmode="tel" required></label>
-          </div>
-
-          <h3>留守本部</h3>
-          <div class="form-grid form-grid--2">
-            <label class="field"><span>氏名</span><input id="baseName" type="text" required></label>
-            <label class="field"><span>電話番号</span><input id="basePhone" type="tel" inputmode="tel" required></label>
-          </div>
-          <label class="checkbox-row"><input id="rememberContacts" type="checkbox"><span>連絡先を保存</span></label>
-
-          <details class="details-panel">
-            <summary><span>集合場所・雨天</span></summary>
-            <div class="details-panel__body form-grid form-grid--2">
-              <label class="field field--wide"><span>集合場所</span><input id="meetingPlace" type="text" value="信州大学 松本キャンパス サークルボックス前"></label>
-              <label class="field"><span>雨天時</span><select id="rainPolicy"><option>雨天中止</option><option>荒天中止</option><option>小雨決行</option></select></label>
-            </div>
-          </details>
-        </div>
-      </div>
-      <div class="step-actions step-actions--end"><button class="btn btn--primary" id="step1-next" type="button">次へ</button></div>
-    </section>
-
-    <section class="step" data-step="2">
-      <div class="section-grid">
-        <h2>YAMAP</h2>
-        <div class="section-body">
-          <section class="yamap-upload-group" aria-labelledby="route-upload-heading">
-            <h3 id="route-upload-heading">ルート画像</h3>
-            <div class="example-grid example-grid--route" aria-label="ルート画像の例">
-              <figure class="example-card">
-                <span class="example-badge">例</span>
-                <img src="./public/examples/yamap-route.webp" alt="YAMAPのルート画像の例">
-              </figure>
-            </div>
-            <label class="drop-zone" id="route-drop-zone">
-              <input id="route-file-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>
-              <strong>ルート画像を追加</strong>
-              <span>PNG、JPEG、WebP</span>
-            </label>
-            <div id="route-upload-list" class="upload-grid upload-grid--route"></div>
-          </section>
-
-          <section class="yamap-upload-group" aria-labelledby="itinerary-upload-heading">
-            <h3 id="itinerary-upload-heading">行程画像</h3>
-            <div class="example-grid example-grid--itinerary" aria-label="行程画像の例">
-              <figure class="example-card">
-                <span class="example-badge">例</span>
-                <img src="./public/examples/yamap-itinerary-1.webp" alt="YAMAPの行程画像の例 1">
-              </figure>
-              <figure class="example-card">
-                <span class="example-badge">例</span>
-                <img src="./public/examples/yamap-itinerary-2.webp" alt="YAMAPの行程画像の例 2">
-              </figure>
-            </div>
-            <label class="drop-zone" id="itinerary-drop-zone">
-              <input id="itinerary-file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
-              <strong>行程画像を追加</strong>
-              <span>複数選択できます</span>
-            </label>
-            <div id="itinerary-upload-list" class="upload-grid"></div>
-          </section>
-
-          <div id="analysis-status" class="inline-status is-hidden" role="status"></div>
-        </div>
-      </div>
-      <div class="step-actions"><button class="btn btn--secondary" id="step2-back" type="button">戻る</button><button class="btn btn--primary" id="step2-next" type="button" disabled>次へ</button></div>
-    </section>
-
-    <section class="step" data-step="3">
-      <div class="section-grid">
-        <h2>確認</h2>
-        <div class="section-body">
-          <div class="form-grid form-grid--2">
-            <label class="field"><span>山名</span><input id="mountainName" type="text" required></label>
-            <label class="field"><span>市町村</span><input id="areaMunicipality" type="text" required></label>
-          </div>
-
-          <h3>計画</h3>
-          <div class="form-grid form-grid--4">
-            <label class="field"><span>時間（分）</span><input id="durationMinutes" type="number" min="0" required></label>
-            <label class="field"><span>距離（km）</span><input id="distanceKm" type="number" step="0.1" min="0" required></label>
-            <label class="field"><span>上り（m）</span><input id="ascentM" type="number" min="0" required></label>
-            <label class="field"><span>下り（m）</span><input id="descentM" type="number" min="0" required></label>
-            <label class="field"><span>飲料（L）</span><input id="drinkLiters" type="number" min="0.5" max="10" step="0.5" value="2.0" required></label>
-          </div>
-
-          <h3>管轄</h3>
-          <div class="form-grid form-grid--2 police-row">
-            <label class="field"><span>警察署</span><input id="police1Name" type="text" required></label>
-            <label class="field"><span>電話番号</span><input id="police1Phone" type="tel" inputmode="tel" required></label>
-          </div>
-          <div id="police-secondary" class="form-grid form-grid--2 police-row">
-            <label class="field"><span>警察署</span><input id="police2Name" type="text"></label>
-            <label class="field"><span>電話番号</span><input id="police2Phone" type="tel" inputmode="tel"></label>
-          </div>
-          <div id="police-tertiary" class="form-grid form-grid--2 police-row">
-            <label class="field"><span>警察署</span><input id="police3Name" type="text"></label>
-            <label class="field"><span>電話番号</span><input id="police3Phone" type="tel" inputmode="tel"></label>
-          </div>
-          <div id="police-note" class="field-note is-hidden"></div>
-
-          <h3>行程</h3>
-          <div class="table-wrap">
-            <table class="itinerary-table">
-              <thead><tr><th>時刻</th><th>地点</th><th>掲載</th><th>休憩（分）</th><th></th></tr></thead>
-              <tbody id="itinerary-body"></tbody>
-            </table>
-          </div>
-          <button id="add-row" class="btn btn--ghost" type="button">地点を追加</button>
-
-          <h3>ルート</h3>
-          <div id="route-preview" class="route-preview"></div>
-        </div>
-      </div>
-      <div class="step-actions"><button class="btn btn--secondary" id="step3-back" type="button">戻る</button><button class="btn btn--primary" id="print-button" type="button">PDFを共有</button></div>
-    </section>
-
-    <div id="document-preview" class="pdf-source" aria-hidden="true"></div>
-  </main>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
