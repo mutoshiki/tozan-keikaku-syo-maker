@@ -6,6 +6,7 @@ import {
   HeaderPanel,
   RadioButton,
   RadioButtonGroup,
+  Theme as CarbonTheme,
 } from '@carbon/react';
 import { Settings } from '@carbon/icons-react';
 
@@ -71,7 +72,11 @@ export function ThemePreferenceProvider({ children }) {
 
   return (
     <ThemePreferenceContext.Provider value={value}>
-      <GlobalTheme theme={resolvedTheme}>{children}</GlobalTheme>
+      <GlobalTheme theme={resolvedTheme}>
+        <CarbonTheme theme={resolvedTheme} className="app-theme-root">
+          {children}
+        </CarbonTheme>
+      </GlobalTheme>
     </ThemePreferenceContext.Provider>
   );
 }
