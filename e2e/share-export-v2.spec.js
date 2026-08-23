@@ -65,9 +65,10 @@ test('rain itinerary uses readable type and available page space', async ({ page
   await page.locator('.doc-page[data-page="1"]').screenshot({path:'test-results/page-1-rain-readable.png'});
 });
 
-test('prepared PDF shares immediately even when canShare reports false', async ({ page }) => {
+test('iPhone PDF shares immediately even when canShare reports false', async ({ page }) => {
   await page.addInitScript(() => {
     window.__shareCalls=[];
+    Object.defineProperty(navigator,'userAgent',{configurable:true,value:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 Version/18.6 Mobile/15E148 Safari/604.1'});
     Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false});
     Object.defineProperty(navigator,'share',{configurable:true,value:data=>{
       window.__shareCalls.push({count:data.files?.length||0,type:data.files?.[0]?.type||'',name:data.files?.[0]?.name||''});
@@ -81,7 +82,8 @@ test('prepared PDF shares immediately even when canShare reports false', async (
   await seedRainPlan(page);
 
   const button=page.locator('#print-button');
-  await expect(button).toHaveText('PDFを共有',{timeout:30000});
+  await expect(button).toHaveAttribute('data-pdf-ready','true',{timeout:30000});
+  await expect(button).toHaveText('PDFを共有');
   await expect(button).toBeEnabled();
   const beforeUrl=page.url();
   const beforeUploads=await page.evaluate(()=>window.__tozanApp.state.uploads.length);
