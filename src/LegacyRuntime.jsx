@@ -8,6 +8,11 @@ import viewSource from '../app-view.js?raw';
 import shareSource from '../app-share.js?raw';
 
 const RUNTIME_KEY = '__TOZAN_REACT_RUNTIME_READY__';
+const compatibilityExports = `
+window.normalizeVisionResult = normalizeVisionResult;
+window.municipalityArea = municipalityArea;
+window.applyPoliceFromRoute = applyPoliceFromRoute;
+`;
 
 /**
  * Transitional compatibility bridge while React becomes the sole DOM owner.
@@ -24,7 +29,7 @@ export default function LegacyRuntime() {
     window.html2canvas = html2canvas;
     window.jspdf = { ...(window.jspdf || {}), jsPDF };
 
-    const source = [configSource, coreSource, flowSource, viewSource, shareSource]
+    const source = [configSource, coreSource, flowSource, viewSource, shareSource, compatibilityExports]
       .join('\n\n;\n\n');
 
     // Keep the classic files in a single lexical scope exactly as they ran when
