@@ -43,6 +43,19 @@ function durationLabel(min) {
   return `${h}時間${m ? `${m}分` : ''}`;
 }
 
+function fitJourneyToPage() {
+  const page = $('.doc-page[data-page="1"]', $('#document-preview'));
+  const box = page ? $('.journey-box', page) : null;
+  if (!page || !box) return 'normal';
+  box.classList.remove('journey-box--compact','journey-box--dense');
+  if (page.scrollHeight <= page.clientHeight + 1) return 'normal';
+  box.classList.add('journey-box--compact');
+  if (page.scrollHeight <= page.clientHeight + 1) return 'compact';
+  box.classList.remove('journey-box--compact');
+  box.classList.add('journey-box--dense');
+  return 'dense';
+}
+
 function renderDocument() {
   const form = getFormData();
   const major = adjustedRows().filter(r => r.major);
@@ -50,7 +63,6 @@ function renderDocument() {
   const goal = major.at(-1)?.adjustedTime || '—';
   const route = state.routeImage ? `<img src="${state.routeImage}" alt="YAMAPルート地図">` : '<div class="route-placeholder">ルート画像なし</div>';
   const title = form.mountainName ? `${escapeHtml(form.mountainName)}登山計画書` : '登山計画書';
-  const densityClass = major.length >= 11 ? ' journey-box--dense' : major.length >= 8 ? ' journey-box--compact' : '';
   const secondPolice = form.police2Name && form.police2Phone ? `<p>${escapeHtml(form.police2Name)}：${escapeHtml(form.police2Phone)}</p>` : '';
   const thirdPolice = form.police3Name && form.police3Phone ? `<p>${escapeHtml(form.police3Name)}：${escapeHtml(form.police3Phone)}</p>` : '';
 
@@ -66,7 +78,7 @@ function renderDocument() {
     <h2>≪行程≫</h2>
     <p style="text-align:center">入山予定時刻 ${start} / 下山予定時刻 ${goal}</p>
     <p style="text-align:center">合計時間：約 ${durationLabel(state.metrics.durationMinutes)}　上り：${state.metrics.ascentM ?? '—'}m / 下り：${state.metrics.descentM ?? '—'}m　距離：${state.metrics.distanceKm ?? '—'}km</p>
-    <div class="journey-box${densityClass}">${buildJourneyHtml()}<div class="journey-legend"><span class="start">Ⓢ</span>:Start　<span class="peak">Ⓟ</span>:Peak　<span class="goal">Ⓖ</span>:Goal</div></div>
+    <div class="journey-box">${buildJourneyHtml()}<div class="journey-legend"><span class="start">Ⓢ</span>:Start　<span class="peak">Ⓟ</span>:Peak　<span class="goal">Ⓖ</span>:Goal</div></div>
   </article>
   <article class="doc-page" data-page="2">
     <h2>≪ルート≫</h2><div class="route-image-frame">${route}</div>
@@ -84,6 +96,7 @@ function renderDocument() {
       <p>留守本部（${escapeHtml(form.baseName)}）：${escapeHtml(form.basePhone)}</p>
     </div>
   </article>`;
+  fitJourneyToPage();
 }
 
 function focusFirst(ids) {
@@ -174,36 +187,100 @@ function waitForImages(root) {
 function nextFrame() { return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); }
 function safeFilename(value) { return String(value || '登山計画書').replace(/[\\/:*?"<>|]/g,'_').trim() || '登山計画書'; }
 
+let pendingPdfFile = null;
+
+function downloadFile(file) {
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = file.name;
+  a.style.display = 'none';
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function canShareFile(file) {
+  if (typeof navigator.share !== 'function') return false;
+  if (typeof navigator.canShare !== 'function') return true;
+  try { return navigator.canShare({files:[file]}); } catch { return false; }
+}
+
+async function shareFile(file) {
+  await navigator.share({files:[file],title:file.name});
+}
+
+async function createPdfFile() {
+  if (!window.html2canvas || !window.jspdf?.jsPDF) throw new Error('PDFを作成できません。');
+  renderDocument();
+  await document.fonts?.ready;
+  await waitForImages($('#document-preview'));
+  document.body.classList.add('is-pdf-export');
+  await nextFrame();
+  fitJourneyToPage();
+  await nextFrame();
+  const pages = $$('.doc-page', $('#document-preview'));
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+  for (let i=0;i<pages.length;i+=1) {
+    const page = pages[i];
+    const canvas = await window.html2canvas(page,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false,width:page.scrollWidth,height:page.scrollHeight,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
+    if (i > 0) pdf.addPage('a4','portrait');
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',0,0,210,297,undefined,'FAST');
+  }
+  const filename = `登山計画書_${safeFilename($('#mountainName').value)}.pdf`;
+  return new File([pdf.output('blob')], filename, {type:'application/pdf'});
+}
+
 async function downloadPdf() {
   if (!validateStep3()) return;
   const button = $('#print-button');
-  const old = button.textContent;
-  button.disabled = true;
-  button.textContent = '作成中…';
-  try {
-    if (!window.html2canvas || !window.jspdf?.jsPDF) throw new Error('PDFを作成できません。');
-    renderDocument();
-    await document.fonts?.ready;
-    await waitForImages($('#document-preview'));
-    document.body.classList.add('is-pdf-export');
-    await nextFrame();
-    const pages = $$('.doc-page', $('#document-preview'));
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
-    for (let i=0;i<pages.length;i+=1) {
-      const page = pages[i];
-      const canvas = await window.html2canvas(page,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false,width:page.scrollWidth,height:page.scrollHeight,windowWidth:page.scrollWidth,windowHeight:page.scrollHeight});
-      if (i > 0) pdf.addPage('a4','portrait');
-      pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',0,0,210,297,undefined,'FAST');
+  const originalLabel = 'PDFを共有';
+
+  if (pendingPdfFile && canShareFile(pendingPdfFile)) {
+    try {
+      await shareFile(pendingPdfFile);
+      pendingPdfFile = null;
+      button.textContent = originalLabel;
+    } catch (error) {
+      if (error?.name !== 'AbortError') console.error(error);
     }
-    pdf.save(`登山計画書_${safeFilename($('#mountainName').value)}.pdf`);
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'PDFを作成中…';
+  try {
+    const file = await createPdfFile();
+    pendingPdfFile = file;
+    if (canShareFile(file)) {
+      try {
+        await shareFile(file);
+        pendingPdfFile = null;
+        button.textContent = originalLabel;
+      } catch (error) {
+        if (error?.name === 'AbortError') {
+          button.textContent = originalLabel;
+        } else if (error?.name === 'NotAllowedError') {
+          button.textContent = 'PDFを共有';
+        } else {
+          console.error(error);
+          button.textContent = 'PDFを共有';
+        }
+      }
+    } else {
+      downloadFile(file);
+      pendingPdfFile = null;
+      button.textContent = originalLabel;
+    }
   } catch (error) {
     console.error(error);
     window.alert(error.message);
+    button.textContent = originalLabel;
   } finally {
     document.body.classList.remove('is-pdf-export');
     button.disabled = false;
-    button.textContent = old;
   }
 }
 
@@ -211,18 +288,19 @@ function bindDropZone(zoneSelector, inputSelector, kind) {
   const input = $(inputSelector);
   const zone = $(zoneSelector);
   input.addEventListener('change', async e => {
+    pendingPdfFile = null;
     await addFiles([...e.target.files], kind);
     e.target.value = '';
   });
   zone.addEventListener('dragover', e => e.preventDefault());
-  zone.addEventListener('drop', e => { e.preventDefault(); addFiles([...e.dataTransfer.files], kind); });
+  zone.addEventListener('drop', e => { e.preventDefault(); pendingPdfFile = null; addFiles([...e.dataTransfer.files], kind); });
 }
 
 function bind() {
   bindDropZone('#route-drop-zone','#route-file-input','route');
   bindDropZone('#itinerary-drop-zone','#itinerary-file-input','itinerary');
-  ['durationMinutes','distanceKm','ascentM','descentM'].forEach(key => $(`#${key}`).addEventListener('input', e => { state.metrics[key] = e.target.value === '' ? null : Number(e.target.value); }));
-  $('#add-row').onclick = () => { state.itinerary.push({time:'12:00',place:'',major:true,restMinutes:0}); state.itinerary.sort((a,b)=>a.time.localeCompare(b.time)); renderItinerary(); };
+  ['durationMinutes','distanceKm','ascentM','descentM'].forEach(key => $(`#${key}`).addEventListener('input', e => { pendingPdfFile = null; state.metrics[key] = e.target.value === '' ? null : Number(e.target.value); }));
+  $('#add-row').onclick = () => { pendingPdfFile = null; state.itinerary.push({time:'12:00',place:'',major:true,restMinutes:0}); state.itinerary.sort((a,b)=>a.time.localeCompare(b.time)); renderItinerary(); };
   $('#step1-next').onclick = () => goToStep(2);
   $('#step2-back').onclick = () => goToStep(1);
   $('#step2-next').onclick = () => goToStep(3);
@@ -231,10 +309,11 @@ function bind() {
   $$('.progress__step').forEach(btn => btn.onclick = () => { const n = Number(btn.dataset.stepTarget); if (n <= state.step) goToStep(n); });
   $('#rememberContacts').onchange = () => { if ($('#rememberContacts').checked) saveContacts(); else localStorage.removeItem(CONTACT_STORAGE_KEY); };
   CONTACT_IDS.forEach(id => $(`#${id}`).addEventListener('input', saveContacts));
+  $('.step[data-step="3"]').addEventListener('input', () => { pendingPdfFile = null; $('#print-button').textContent = 'PDFを共有'; });
 }
 
 bind();
 loadContacts();
 syncMetricInputs();
 renderItinerary();
-window.__tozanApp = { state, adjustedRows, renderDocument, goToStep, downloadPdf, validateStep3, resolveNaganoPoliceStations, addFiles, canAnalyzeUploads };
+window.__tozanApp = { state, adjustedRows, renderDocument, goToStep, downloadPdf, validateStep3, resolveNaganoPoliceStations, addFiles, canAnalyzeUploads, fitJourneyToPage, createPdfFile };
