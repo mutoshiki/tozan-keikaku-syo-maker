@@ -53,6 +53,19 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
   const police=await page.evaluate(()=>window.__tozanApp.resolveNaganoPoliceStations(['上田市'],'').stations);
   expect(police).toEqual([{name:'上田警察署',phone:'0268-22-0110'}]);
 
+  const normalized=await page.evaluate(()=>normalizeVisionResult({
+    itinerary:[{time:'7:00',place:'菅平牧場公衆トイレ',major:true},{time:'9:00',place:'根子岳',major:true}],
+    municipalities:['上田市','須坂市','嬬恋村'],warnings:[]
+  }).itinerary.map(row=>row.time));
+  expect(normalized).toEqual(['07:00','09:00']);
+
+  const borderPolice=await page.evaluate(()=>window.__tozanApp.resolveNaganoPoliceStations(['上田市','須坂市','嬬恋村'],'').stations);
+  expect(borderPolice).toEqual([
+    {name:'上田警察署',phone:'0268-22-0110'},
+    {name:'須坂警察署',phone:'026-246-0110'},
+    {name:'長野原警察署',phone:'0279-82-0110'}
+  ]);
+
   await seedPlan(page);
   await expect(page.locator('.step[data-step="3"]')).toBeVisible();
   await expect(page.locator('#route-preview img')).toHaveCount(1);
