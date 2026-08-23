@@ -50,6 +50,15 @@ function normalizeClock(value) {
   return `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
 }
 
+function cleanMunicipality(value) {
+  return String(value || '').replace(/^(?:長野県|群馬県)/,'').trim();
+}
+
+function municipalityArea(municipalities = [], fallback = '') {
+  const cleaned = [...new Set(municipalities.map(cleanMunicipality).filter(Boolean))];
+  return cleaned.length ? cleaned.join('・') : String(fallback || '').trim();
+}
+
 function normalizeVisionResult(result) {
   const itinerary = Array.isArray(result.itinerary) ? result.itinerary
     .map(row => ({ row, time: normalizeClock(row?.time) }))
@@ -58,7 +67,7 @@ function normalizeVisionResult(result) {
   return {
     mountainName: typeof result.mountainName === 'string' ? result.mountainName.trim() : '',
     areaMunicipality: typeof result.areaMunicipality === 'string' ? result.areaMunicipality.trim() : '',
-    municipalities: Array.isArray(result.municipalities) ? result.municipalities.map(String).map(v => v.trim()).filter(Boolean) : [],
+    municipalities: Array.isArray(result.municipalities) ? [...new Set(result.municipalities.map(cleanMunicipality).filter(Boolean))] : [],
     metrics: {
       durationMinutes:Number.isFinite(Number(result.durationMinutes)) ? Number(result.durationMinutes) : null,
       distanceKm:Number.isFinite(Number(result.distanceKm)) ? Number(result.distanceKm) : null,
@@ -72,7 +81,7 @@ function normalizeVisionResult(result) {
 }
 
 function resolveNaganoPoliceStations(municipalities = [], areaText = '') {
-  const detected = [...new Set(municipalities.map(v => v.replace(/^(?:長野県|群馬県)/,'').trim()).filter(Boolean))];
+  const detected = [...new Set(municipalities.map(cleanMunicipality).filter(Boolean))];
   if (!detected.length) for (const municipality of Object.keys(POLICE_BY_MUNICIPALITY)) if (areaText.includes(municipality)) detected.push(municipality);
   if (areaText.includes('長野市')) detected.push('長野市');
   const stations = [];
@@ -115,8 +124,9 @@ async function analyzeUploads() {
     state.metrics = result.metrics;
     state.itinerary = result.itinerary.sort((a,b) => a.time.localeCompare(b.time));
     if (result.mountainName) $('#mountainName').value = result.mountainName;
-    if (result.areaMunicipality) $('#areaMunicipality').value = result.areaMunicipality;
-    applyPoliceFromRoute(result.municipalities, result.areaMunicipality);
+    const area = municipalityArea(result.municipalities, result.areaMunicipality);
+    if (area) $('#areaMunicipality').value = area;
+    applyPoliceFromRoute(result.municipalities, area);
 
     state.uploads.forEach((upload,index) => { upload.routeSource = index === result.routeImageIndex; upload.classification = upload.routeSource ? 'route' : 'image'; });
     if (result.routeImageIndex !== null && state.uploads[result.routeImageIndex]) state.routeImage = state.uploads[result.routeImageIndex].url;
