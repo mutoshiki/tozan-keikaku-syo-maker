@@ -33,9 +33,9 @@ async function seedPlan(page) {
 test('simplified Carbon flow keeps only three steps and generates a three-page PDF', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.progress__step')).toHaveCount(3);
-  await expect(page.getByText('基本情報',{exact:true})).toBeVisible();
-  await expect(page.getByText('YAMAP',{exact:true})).toBeVisible();
-  await expect(page.getByText('確認',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'基本情報'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'YAMAP'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'確認'})).toBeVisible();
   await expect(page.locator('.cds-header a')).toHaveCount(0);
   await expect(page.locator('.fixed-panel')).toHaveCount(0);
   await expect(page.locator('.summary-strip')).toHaveCount(0);
