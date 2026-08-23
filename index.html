@@ -52,7 +52,7 @@
           <label class="checkbox-row"><input id="rememberContacts" type="checkbox"><span>連絡先を保存</span></label>
 
           <details class="details-panel">
-            <summary>その他</summary>
+            <summary>集合場所・雨天</summary>
             <div class="details-panel__body form-grid form-grid--2">
               <label class="field field--wide"><span>集合場所</span><input id="meetingPlace" type="text" value="信州大学 松本キャンパス サークルボックス前"></label>
               <label class="field"><span>雨天時</span><select id="rainPolicy"><option>雨天中止</option><option>荒天中止</option><option>小雨決行</option></select></label>
@@ -95,15 +95,17 @@
             <label class="field"><span>上り（m）</span><input id="ascentM" type="number" min="0" required></label>
             <label class="field"><span>下り（m）</span><input id="descentM" type="number" min="0" required></label>
           </div>
-
-          <h3>連絡先</h3>
-          <div class="form-grid form-grid--3">
-            <label class="field"><span>管轄警察署</span><input id="police1Name" type="text" required></label>
-            <label class="field"><span>電話番号</span><input id="police1Phone" type="tel" inputmode="tel" required></label>
+          <div class="form-grid form-grid--2 form-grid--subrow">
             <label class="field"><span>飲料（L）</span><input id="drinkLiters" type="number" min="0.5" max="10" step="0.5" required></label>
           </div>
-          <div id="police-secondary" class="form-grid form-grid--2 is-hidden">
-            <label class="field"><span>管轄警察署</span><input id="police2Name" type="text"></label>
+
+          <h3>管轄</h3>
+          <div class="form-grid form-grid--2">
+            <label class="field"><span>警察署</span><input id="police1Name" type="text" required></label>
+            <label class="field"><span>電話番号</span><input id="police1Phone" type="tel" inputmode="tel" required></label>
+          </div>
+          <div id="police-secondary" class="form-grid form-grid--2 form-grid--subrow is-hidden">
+            <label class="field"><span>警察署</span><input id="police2Name" type="text"></label>
             <label class="field"><span>電話番号</span><input id="police2Phone" type="tel" inputmode="tel"></label>
           </div>
           <div id="police-note" class="field-note is-hidden"></div>
@@ -111,7 +113,7 @@
           <h3>行程</h3>
           <div class="table-wrap">
             <table class="itinerary-table">
-              <thead><tr><th>時刻</th><th>地点</th><th>含める</th><th>休憩</th><th></th></tr></thead>
+              <thead><tr><th>時刻</th><th>地点</th><th>掲載</th><th>休憩（分）</th><th></th></tr></thead>
               <tbody id="itinerary-body"></tbody>
             </table>
           </div>
