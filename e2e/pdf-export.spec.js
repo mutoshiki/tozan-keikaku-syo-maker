@@ -5,6 +5,15 @@ function pdfPageCount(buffer) {
   return (buffer.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
 }
 
+async function fillBasicInfo(page) {
+  await page.fill('#eventDate','2026-08-21');
+  await page.fill('#plannerStudentId','TEST-001');
+  await page.fill('#plannerName','企画 太郎');
+  await page.fill('#plannerPhone','090-1111-2222');
+  await page.fill('#baseName','留守 花子');
+  await page.fill('#basePhone','090-3333-4444');
+}
+
 async function seedPlan(page) {
   await page.evaluate(() => {
     const values = {
@@ -34,7 +43,69 @@ async function seedPlan(page) {
   });
 }
 
-test('simplified Carbon flow keeps only three steps and generates a three-page PDF', async ({ page }) => {
+test('guided YAMAP step separates route and itinerary images', async ({ page }) => {
+  let analyzeCalls=0;
+  let imageCount=0;
+  await page.route('**/analyze', async route => {
+    analyzeCalls += 1;
+    imageCount = route.request().postDataJSON().images.length;
+    await route.fulfill({
+      status:200,
+      contentType:'application/json',
+      body:JSON.stringify({
+        mountainName:'根子岳・四阿山',areaMunicipality:'菅平高原 / 長野県上田市・須坂市・群馬県嬬恋村',
+        municipalities:['上田市','須坂市','嬬恋村'],durationMinutes:370,distanceKm:9.5,ascentM:987,descentM:988,routeImageIndex:0,
+        itinerary:[{time:'7:00',place:'車坂峠',major:true},{time:'8:52',place:'黒斑山',major:true},{time:'13:34',place:'車坂峠',major:true}],warnings:[]
+      })
+    });
+  });
+
+  await page.goto('/');
+  await expect(page.locator('.example-card')).toHaveCount(3);
+  await expect(page.locator('.example-badge')).toHaveCount(3);
+  await expect(page.locator('.example-card img')).toHaveCount(3);
+  await expect(page.locator('#route-file-input')).not.toHaveAttribute('multiple','');
+  await expect(page.locator('#itinerary-file-input')).toHaveAttribute('multiple','');
+
+  const details=page.locator('.details-panel');
+  await expect(details).not.toHaveAttribute('open','');
+  await page.locator('.details-panel summary').click();
+  await expect(details).toHaveAttribute('open','');
+  const chevron=await page.locator('.details-panel summary').evaluate(el=>getComputedStyle(el,'::after').transform);
+  expect(chevron).not.toBe('none');
+
+  await fillBasicInfo(page);
+  await page.getByRole('button',{name:'次へ'}).click();
+  await expect(page.locator('.step[data-step="2"]')).toBeVisible();
+
+  await page.locator('#route-file-input').setInputFiles('public/examples/yamap-route.webp');
+  expect(analyzeCalls).toBe(0);
+  await expect(page.locator('#route-upload-list .upload-card')).toHaveCount(1);
+  await expect(page.locator('#itinerary-upload-list .upload-card')).toHaveCount(0);
+  await expect(page.locator('#step2-next')).toBeDisabled();
+
+  await page.locator('#itinerary-file-input').setInputFiles([
+    'public/examples/yamap-itinerary-1.webp',
+    'public/examples/yamap-itinerary-2.webp'
+  ]);
+  await expect(page.locator('#analysis-status')).toHaveText('読み取り完了');
+  expect(analyzeCalls).toBe(1);
+  expect(imageCount).toBe(3);
+  await expect(page.locator('#route-upload-list .upload-card')).toHaveCount(1);
+  await expect(page.locator('#itinerary-upload-list .upload-card')).toHaveCount(2);
+  await expect(page.locator('#step2-next')).toBeEnabled();
+
+  await page.locator('#step2-next').click();
+  await expect(page.locator('.step[data-step="3"]')).toBeVisible();
+  await expect(page.locator('#drinkLiters')).toHaveValue('2.0');
+  await expect(page.locator('#police-secondary')).toBeVisible();
+  await expect(page.locator('#police-tertiary')).toBeVisible();
+  await expect(page.locator('#police1Name')).toHaveValue('上田警察署');
+  await expect(page.locator('#police2Name')).toHaveValue('須坂警察署');
+  await expect(page.locator('#police3Name')).toHaveValue('長野原警察署');
+});
+
+test('simplified Carbon flow keeps editable auto-filled fields and generates a three-page PDF', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.progress__step')).toHaveCount(3);
   await expect(page.getByRole('button',{name:'基本情報'})).toBeVisible();
@@ -44,6 +115,7 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
   await expect(page.locator('.fixed-panel')).toHaveCount(0);
   await expect(page.locator('.summary-strip')).toHaveCount(0);
   await expect(page.getByText('市町村',{exact:true})).toHaveCount(1);
+  await expect(page.locator('#drinkLiters')).toHaveValue('2.0');
 
   await page.fill('#plannerStudentId','TEST-001');
   await page.fill('#plannerName','企画 太郎');
@@ -85,6 +157,8 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
   await expect(page.locator('#police1Phone')).toHaveValue('0268-22-0110');
   await expect(page.locator('#police2Name')).toHaveValue('須坂警察署');
   await expect(page.locator('#police3Name')).toHaveValue('長野原警察署');
+  await expect(page.locator('#police-secondary')).toBeVisible();
+  await expect(page.locator('#police-tertiary')).toBeVisible();
 
   await page.fill('#areaMunicipality','上田市・嬬恋村');
   await page.fill('#police1Name','確認後の警察署');
@@ -93,7 +167,6 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
   await expect(page.locator('#police1Name')).toHaveValue('確認後の警察署');
   await expect(page.locator('#police1Phone')).toHaveValue('000-0000-0000');
 
-  // PDF検証用に自動入力値へ戻す。
   await page.fill('#areaMunicipality','上田市・須坂市・嬬恋村');
   await page.fill('#police1Name','上田警察署');
   await page.fill('#police1Phone','0268-22-0110');
