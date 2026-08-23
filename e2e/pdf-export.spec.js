@@ -10,10 +10,13 @@ async function seedPlan(page) {
     const values = {
       eventDate:'2026-08-21',meetingTime:'05:00',meetingPlace:'信州大学 松本キャンパス サークルボックス前',rainPolicy:'雨天中止',
       plannerStudentId:'TEST-001',plannerName:'企画 太郎',plannerPhone:'090-1111-2222',baseName:'留守 花子',basePhone:'090-3333-4444',
-      mountainName:'根子岳・四阿山',areaMunicipality:'四阿山 / 長野県上田市',police1Name:'上田警察署',police1Phone:'0268-22-0110',police2Name:'',police2Phone:'',drinkLiters:'2.0',
+      mountainName:'根子岳・四阿山',areaMunicipality:'菅平・四阿山域 / 上田市・須坂市・嬬恋村',
+      police1Name:'上田警察署',police1Phone:'0268-22-0110',police2Name:'須坂警察署',police2Phone:'026-246-0110',police3Name:'長野原警察署',police3Phone:'0279-82-0110',drinkLiters:'2.0',
       durationMinutes:'370',distanceKm:'9.5',ascentM:'987',descentM:'988'
     };
     for (const [id,value] of Object.entries(values)) document.getElementById(id).value = value;
+    document.getElementById('police-secondary').classList.remove('is-hidden');
+    document.getElementById('police-tertiary').classList.remove('is-hidden');
     const c=document.createElement('canvas');c.width=540;c.height=1170;const ctx=c.getContext('2d');
     ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#f4f4f4';ctx.fillRect(30,80,480,850);
     ctx.strokeStyle='#555';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(70,780);ctx.bezierCurveTo(180,130,360,760,480,220);ctx.stroke();
@@ -53,6 +56,19 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
   const police=await page.evaluate(()=>window.__tozanApp.resolveNaganoPoliceStations(['上田市'],'').stations);
   expect(police).toEqual([{name:'上田警察署',phone:'0268-22-0110'}]);
 
+  const normalized=await page.evaluate(()=>normalizeVisionResult({
+    itinerary:[{time:'7:00',place:'菅平牧場公衆トイレ',major:true},{time:'9:00',place:'根子岳',major:true}],
+    municipalities:['上田市','須坂市','嬬恋村'],warnings:[]
+  }).itinerary.map(row=>row.time));
+  expect(normalized).toEqual(['07:00','09:00']);
+
+  const borderPolice=await page.evaluate(()=>window.__tozanApp.resolveNaganoPoliceStations(['上田市','須坂市','嬬恋村'],'').stations);
+  expect(borderPolice).toEqual([
+    {name:'上田警察署',phone:'0268-22-0110'},
+    {name:'須坂警察署',phone:'026-246-0110'},
+    {name:'長野原警察署',phone:'0279-82-0110'}
+  ]);
+
   await seedPlan(page);
   await expect(page.locator('.step[data-step="3"]')).toBeVisible();
   await expect(page.locator('#route-preview img')).toHaveCount(1);
@@ -62,7 +78,10 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
   await expect(page.locator('.doc-page')).toHaveCount(3);
   await expect(page.locator('.doc-page[data-page="2"] .gear-box')).toHaveCount(0);
   await expect(page.locator('.doc-page[data-page="3"] .gear-box')).toHaveCount(1);
-  await expect(page.locator('.doc-page[data-page="3"] .contact-list p')).toHaveCount(5);
+  await expect(page.locator('.doc-page[data-page="3"] .contact-list p')).toHaveCount(7);
+  await expect(page.locator('.doc-page[data-page="3"] .contact-list')).toContainText('長野原警察署');
+  const page3Fits=await page.locator('.doc-page[data-page="3"]').evaluate(el=>el.scrollHeight<=el.clientHeight+1);
+  expect(page3Fits).toBe(true);
   const routeBox=await page.locator('.doc-page[data-page="2"] .route-image-frame').boundingBox();
   expect(routeBox?.height||0).toBeGreaterThan(650);
   await page.locator('.doc-page[data-page="1"]').screenshot({path:'test-results/page-1.png'});
