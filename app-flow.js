@@ -1,7 +1,7 @@
 const AI_ENDPOINT = window.TOZAN_AI_ENDPOINT || '';
 
-// 長野県警の現行管轄を市町村名から引く。山名→YAMAP解析で市町村→管轄署の順に決定する。
-const NAGANO_POLICE = {
+// ルート上の市町村から管轄署を引く。電話番号は警察公式情報を固定値として保持する。
+const POLICE_BY_MUNICIPALITY = {
   '信濃町':['長野中央警察署','026-244-0110'],'小川村':['長野中央警察署','026-244-0110'],'飯綱町':['長野中央警察署','026-244-0110'],
   '飯山市':['飯山警察署','0269-62-0110'],'栄村':['飯山警察署','0269-62-0110'],'木島平村':['飯山警察署','0269-62-0110'],'野沢温泉村':['飯山警察署','0269-62-0110'],
   '中野市':['中野警察署','0269-26-0110'],'山ノ内町':['中野警察署','0269-26-0110'],
@@ -22,7 +22,8 @@ const NAGANO_POLICE = {
   '塩尻市':['塩尻警察署','0263-54-0110'],'朝日村':['塩尻警察署','0263-54-0110'],
   '松本市':['松本警察署','0263-25-0110'],'山形村':['松本警察署','0263-25-0110'],
   '安曇野市':['安曇野警察署','0263-72-0110'],'麻績村':['安曇野警察署','0263-72-0110'],'生坂村':['安曇野警察署','0263-72-0110'],'筑北村':['安曇野警察署','0263-72-0110'],
-  '大町市':['大町警察署','0261-22-0110'],'池田町':['大町警察署','0261-22-0110'],'松川村':['大町警察署','0261-22-0110'],'白馬村':['大町警察署','0261-22-0110'],'小谷村':['大町警察署','0261-22-0110']
+  '大町市':['大町警察署','0261-22-0110'],'池田町':['大町警察署','0261-22-0110'],'松川村':['大町警察署','0261-22-0110'],'白馬村':['大町警察署','0261-22-0110'],'小谷村':['大町警察署','0261-22-0110'],
+  '長野原町':['長野原警察署','0279-82-0110'],'嬬恋村':['長野原警察署','0279-82-0110'],'草津町':['長野原警察署','0279-82-0110']
 };
 
 function dataUrlPayload(dataUrl) {
@@ -40,10 +41,20 @@ async function analyzeWithVision() {
   return payload;
 }
 
+function normalizeClock(value) {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+  return `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+}
+
 function normalizeVisionResult(result) {
   const itinerary = Array.isArray(result.itinerary) ? result.itinerary
-    .filter(row => row && /^\d{2}:\d{2}$/.test(String(row.time || '')) && String(row.place || '').trim())
-    .map(row => ({ time:String(row.time), place:String(row.place).trim(), major:row.major !== false && String(row.place).trim() !== '分岐', restMinutes:0, _confidence:10 })) : [];
+    .map(row => ({ row, time: normalizeClock(row?.time) }))
+    .filter(({row,time}) => row && time && String(row.place || '').trim())
+    .map(({row,time}) => ({ time, place:String(row.place).trim(), major:row.major !== false && String(row.place).trim() !== '分岐', restMinutes:0, _confidence:10 })) : [];
   return {
     mountainName: typeof result.mountainName === 'string' ? result.mountainName.trim() : '',
     areaMunicipality: typeof result.areaMunicipality === 'string' ? result.areaMunicipality.trim() : '',
@@ -61,8 +72,8 @@ function normalizeVisionResult(result) {
 }
 
 function resolveNaganoPoliceStations(municipalities = [], areaText = '') {
-  const detected = [...new Set(municipalities.map(v => v.replace(/^長野県/,'').trim()).filter(Boolean))];
-  if (!detected.length) for (const municipality of Object.keys(NAGANO_POLICE)) if (areaText.includes(municipality)) detected.push(municipality);
+  const detected = [...new Set(municipalities.map(v => v.replace(/^(?:長野県|群馬県)/,'').trim()).filter(Boolean))];
+  if (!detected.length) for (const municipality of Object.keys(POLICE_BY_MUNICIPALITY)) if (areaText.includes(municipality)) detected.push(municipality);
   if (areaText.includes('長野市')) detected.push('長野市');
   const stations = [];
   const unresolved = [];
@@ -71,7 +82,7 @@ function resolveNaganoPoliceStations(municipalities = [], areaText = '') {
       stations.push({name:'長野中央警察署',phone:'026-244-0110'},{name:'長野南警察署',phone:'026-292-0110'});
       continue;
     }
-    const pair = NAGANO_POLICE[municipality];
+    const pair = POLICE_BY_MUNICIPALITY[municipality];
     if (pair) stations.push({name:pair[0],phone:pair[1]}); else unresolved.push(municipality);
   }
   return { stations:[...new Map(stations.map(s => [s.name,s])).values()], unresolved };
