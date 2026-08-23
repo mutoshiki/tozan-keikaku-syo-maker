@@ -24,7 +24,8 @@
     if (!isStep3Active()) return;
     setButton('PDFを準備中…', true, false);
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => preparePdf(), 350);
+    // 編集中に何度も重いPDF生成を走らせず、操作が止まってからまとめて準備する。
+    debounceTimer = setTimeout(() => preparePdf(), 1200);
   }
 
   async function preparePdf() {
