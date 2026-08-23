@@ -85,11 +85,17 @@ export function ThemeHeaderControl() {
   const [expanded, setExpanded] = useState(false);
   const currentLabel = preference === SYSTEM ? 'システム設定' : preference === LIGHT ? 'ライト' : 'ダーク';
 
+  const selectPreference = (value) => {
+    setPreference(value);
+    setExpanded(false);
+  };
+
   return (
     <>
       <HeaderGlobalBar>
         <HeaderGlobalAction
           aria-label={`テーマ設定：${currentLabel}`}
+          aria-expanded={expanded}
           isActive={expanded}
           tooltipAlignment="end"
           onClick={() => setExpanded((value) => !value)}
@@ -105,7 +111,7 @@ export function ThemeHeaderControl() {
             name="theme-preference"
             orientation="vertical"
             valueSelected={preference}
-            onChange={(value) => setPreference(value)}
+            onChange={selectPreference}
           >
             <RadioButton id="theme-system" labelText="システム設定" value={SYSTEM} />
             <RadioButton id="theme-light" labelText="ライト" value={LIGHT} />
