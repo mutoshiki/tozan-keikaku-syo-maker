@@ -26,7 +26,7 @@ function renderRoutePreview() {
 }
 
 function getFormData() {
-  const ids = ['eventDate','meetingTime','meetingPlace','mountainName','areaMunicipality','rainPolicy','plannerStudentId','plannerName','plannerPhone','baseName','basePhone','police1Name','police1Phone','police2Name','police2Phone','drinkLiters'];
+  const ids = ['eventDate','meetingTime','meetingPlace','mountainName','areaMunicipality','rainPolicy','plannerStudentId','plannerName','plannerPhone','baseName','basePhone','police1Name','police1Phone','police2Name','police2Phone','police3Name','police3Phone','drinkLiters'];
   return Object.fromEntries(ids.map(id => [id, $(`#${id}`).value.trim()]));
 }
 
@@ -51,6 +51,7 @@ function renderDocument() {
   const title = form.mountainName ? `${escapeHtml(form.mountainName)}登山計画書` : '登山計画書';
   const densityClass = major.length >= 11 ? ' journey-box--dense' : major.length >= 8 ? ' journey-box--compact' : '';
   const secondPolice = form.police2Name && form.police2Phone ? `<p>${escapeHtml(form.police2Name)}：${escapeHtml(form.police2Phone)}</p>` : '';
+  const thirdPolice = form.police3Name && form.police3Phone ? `<p>${escapeHtml(form.police3Name)}：${escapeHtml(form.police3Phone)}</p>` : '';
 
   $('#document-preview').innerHTML = `
   <article class="doc-page" data-page="1">
@@ -77,6 +78,7 @@ function renderDocument() {
       <p>長野県警察本部地域部山岳安全対策課：${MOUNTAIN_SAFETY_PHONE}</p>
       <p>${escapeHtml(form.police1Name)}：${escapeHtml(form.police1Phone)}</p>
       ${secondPolice}
+      ${thirdPolice}
       <p>企画者（${escapeHtml(form.plannerName)}）：${escapeHtml(form.plannerPhone)}</p>
       <p>留守本部（${escapeHtml(form.baseName)}）：${escapeHtml(form.basePhone)}</p>
     </div>
