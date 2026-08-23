@@ -10,6 +10,7 @@
   let debounceTimer = null;
 
   const isStep3Active = () => step3.classList.contains('is-active');
+  const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   function setButton(label, disabled = false, ready = false) {
     button.textContent = label;
@@ -59,6 +60,14 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function shouldUseNativeShare(file) {
+    if (typeof navigator.share !== 'function') return false;
+    // iOS Safari は PDF ファイル共有が可能でも canShare() が false になるケースがあるため、直接 share() を試す。
+    if (isIOS()) return true;
+    if (typeof navigator.canShare !== 'function') return false;
+    try { return navigator.canShare({ files: [file] }); } catch { return false; }
+  }
+
   function sharePreparedPdf(event) {
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -68,7 +77,7 @@
       return;
     }
 
-    if (typeof navigator.share === 'function') {
+    if (shouldUseNativeShare(preparedFile)) {
       let sharePromise;
       try {
         // Safari の transient activation を失わないよう、クリック直後に共有を呼ぶ。
@@ -81,7 +90,7 @@
       Promise.resolve(sharePromise).catch(error => {
         if (error?.name === 'AbortError') return;
         console.error(error);
-        // 共有失敗時も自動ダウンロードへ落とさず、この画面と添付画像を保持する。
+        // iPhoneでは共有失敗時も自動ダウンロードへ落とさず、この画面と添付画像を保持する。
         window.alert('共有を開けませんでした。もう一度押してください。');
       });
       return;
@@ -109,5 +118,6 @@
     preparePdf,
     markDirty,
     getPreparedFile: () => preparedFile,
+    shouldUseNativeShare,
   };
 })();
