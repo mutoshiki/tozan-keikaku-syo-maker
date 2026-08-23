@@ -1,0 +1,24 @@
+.app-theme-root {
+  min-height: 100vh;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+}
+
+.cds--header {
+  background: var(--cds-background);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+.cds--header__name,
+.cds--header__action {
+  color: var(--cds-text-primary);
+}
+.cds--header__action:hover {
+  background: var(--cds-background-hover);
+}
+.cds--header-panel {
+  background: var(--cds-layer);
+  color: var(--cds-text-primary);
+}
+.theme-preference-panel__content .cds--radio-button__label {
+  color: var(--cds-text-primary);
+}

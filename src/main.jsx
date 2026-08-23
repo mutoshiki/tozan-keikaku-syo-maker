@@ -1,10 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import './styles.scss';
 import App from './App.jsx';
+import { ThemePreferenceProvider } from './ThemeToggle.jsx';
+import './styles.scss';
+import './theme-shell.scss';
+import '../export-fixes.css';
 
 createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  <ThemePreferenceProvider>
     <App />
-  </React.StrictMode>,
+  </ThemePreferenceProvider>,
 );

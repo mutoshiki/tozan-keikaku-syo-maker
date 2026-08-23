@@ -23,9 +23,14 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - run: node tests/dark-mode-browser-smoke.cjs
+        env:
+          CHROMIUM_POLICY_DIR: /tmp/empty-chromium-policy
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pdf-browser-qa
-          path: test-results/
+          name: browser-qa
+          path: |
+            test-results/
+            dark-mode-browser-evidence/
           if-no-files-found: ignore
