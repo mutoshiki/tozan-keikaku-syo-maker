@@ -64,3 +64,16 @@ jobs:
       - name: Deploy Vite dist to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Install Chromium for production smoke
+        run: npx playwright install --with-deps chromium
+      - name: Verify deployed React app in production
+        run: node tests/production-pages-smoke.cjs
+        env:
+          LIVE_URL: ${{ steps.deployment.outputs.page_url }}
+      - name: Upload production Pages evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-pages-evidence
+          path: production-pages-evidence/
+          if-no-files-found: ignore
