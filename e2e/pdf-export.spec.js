@@ -64,6 +64,8 @@ test('guided YAMAP step separates route and itinerary images', async ({ page }) 
   await expect(page.locator('.example-card')).toHaveCount(3);
   await expect(page.locator('.example-badge')).toHaveCount(3);
   await expect(page.locator('.example-card img')).toHaveCount(3);
+  const examplesLoaded=await page.locator('.example-card img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0));
+  expect(examplesLoaded).toBe(true);
   await expect(page.locator('#route-file-input')).not.toHaveAttribute('multiple','');
   await expect(page.locator('#itinerary-file-input')).toHaveAttribute('multiple','');
 
@@ -73,6 +75,7 @@ test('guided YAMAP step separates route and itinerary images', async ({ page }) 
   await expect(details).toHaveAttribute('open','');
   const chevron=await page.locator('.details-panel summary').evaluate(el=>getComputedStyle(el,'::after').transform);
   expect(chevron).not.toBe('none');
+  await page.screenshot({path:'test-results/ui-basic-accordion.png',fullPage:true});
 
   await fillBasicInfo(page);
   await page.getByRole('button',{name:'次へ'}).click();
@@ -94,6 +97,7 @@ test('guided YAMAP step separates route and itinerary images', async ({ page }) 
   await expect(page.locator('#route-upload-list .upload-card')).toHaveCount(1);
   await expect(page.locator('#itinerary-upload-list .upload-card')).toHaveCount(2);
   await expect(page.locator('#step2-next')).toBeEnabled();
+  await page.screenshot({path:'test-results/ui-yamap.png',fullPage:true});
 
   await page.locator('#step2-next').click();
   await expect(page.locator('.step[data-step="3"]')).toBeVisible();
@@ -163,13 +167,18 @@ test('simplified Carbon flow keeps editable auto-filled fields and generates a t
   await page.fill('#areaMunicipality','上田市・嬬恋村');
   await page.fill('#police1Name','確認後の警察署');
   await page.fill('#police1Phone','000-0000-0000');
+  await page.fill('#police2Name','確認後の第二管轄');
   await expect(page.locator('#areaMunicipality')).toHaveValue('上田市・嬬恋村');
   await expect(page.locator('#police1Name')).toHaveValue('確認後の警察署');
   await expect(page.locator('#police1Phone')).toHaveValue('000-0000-0000');
+  await expect(page.locator('#police2Name')).toHaveValue('確認後の第二管轄');
 
   await page.fill('#areaMunicipality','上田市・須坂市・嬬恋村');
+  await expect(page.locator('#police1Name')).toHaveValue('確認後の警察署');
+  await expect(page.locator('#police2Name')).toHaveValue('確認後の第二管轄');
   await page.fill('#police1Name','上田警察署');
   await page.fill('#police1Phone','0268-22-0110');
+  await page.fill('#police2Name','須坂警察署');
 
   await expect(page.locator('#route-preview img')).toHaveCount(1);
   await page.screenshot({path:'test-results/ui-desktop.png',fullPage:true});
