@@ -228,13 +228,24 @@ test('simplified Carbon flow keeps editable auto-filled fields and generates a t
   await page.locator('.doc-page[data-page="2"]').screenshot({path:'test-results/page-2.png'});
   await page.locator('.doc-page[data-page="3"]').screenshot({path:'test-results/page-3.png'});
 
-  const downloadPromise=page.waitForEvent('download');
-  await page.getByRole('button',{name:'PDFを共有'}).click();
-  const download=await downloadPromise;
+  const shareButton=page.locator('#print-button');
+  await expect(shareButton).toHaveAttribute('data-pdf-ready','true',{timeout:30000});
+  const prepared=await page.evaluate(async()=>{
+    const file=window.__tozanShare.getPreparedFile();
+    const dataUrl=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    return {name:file.name,type:file.type,size:file.size,dataUrl};
+  });
+  expect(prepared.type).toBe('application/pdf');
+  expect(prepared.name.endsWith('.pdf')).toBe(true);
+  expect(prepared.size).toBeGreaterThan(100_000);
+  const data=Buffer.from(prepared.dataUrl.split(',')[1],'base64');
   const output='test-results/generated-plan.pdf';
-  await download.saveAs(output);
-  const data=fs.readFileSync(output);
-  expect(data.length).toBeGreaterThan(100_000);
+  fs.writeFileSync(output,data);
   expect(pdfPageCount(data)).toBe(3);
 });
 
@@ -257,7 +268,9 @@ test('share-capable mobile browser opens native PDF share without losing uploads
   });
   const beforeUrl=page.url();
   const beforeCount=await page.evaluate(()=>window.__tozanApp.state.uploads.length);
-  await page.getByRole('button',{name:'PDFを共有'}).click();
+  const shareButton=page.locator('#print-button');
+  await expect(shareButton).toHaveAttribute('data-pdf-ready','true',{timeout:30000});
+  await shareButton.click();
   await expect.poll(()=>page.evaluate(()=>window.__sharedPdf||null)).not.toBeNull();
   const shared=await page.evaluate(()=>window.__sharedPdf);
   expect(shared.type).toBe('application/pdf');

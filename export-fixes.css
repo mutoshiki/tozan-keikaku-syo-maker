@@ -1,0 +1,29 @@
+.journey-box{
+  min-height:72mm;
+  font-size:12.5pt;
+  line-height:1.95;
+}
+.journey-box--compact{
+  font-size:11pt;
+  line-height:1.85;
+}
+.journey-box--dense{
+  font-size:10pt;
+  line-height:1.75;
+}
+.journey-legend{
+  font-size:9pt;
+}
+body.is-pdf-export .journey-box{
+  min-height:72mm;
+  font-size:12.5pt;
+  line-height:1.95;
+}
+body.is-pdf-export .journey-box.journey-box--compact{
+  font-size:11pt;
+  line-height:1.85;
+}
+body.is-pdf-export .journey-box.journey-box--dense{
+  font-size:10pt;
+  line-height:1.75;
+}
