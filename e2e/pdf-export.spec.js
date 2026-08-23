@@ -10,7 +10,7 @@ async function seedPlan(page) {
     const values = {
       eventDate:'2026-08-21',meetingTime:'05:00',meetingPlace:'信州大学 松本キャンパス サークルボックス前',rainPolicy:'雨天中止',
       plannerStudentId:'TEST-001',plannerName:'企画 太郎',plannerPhone:'090-1111-2222',baseName:'留守 花子',basePhone:'090-3333-4444',
-      mountainName:'根子岳・四阿山',areaMunicipality:'菅平・四阿山域 / 上田市・須坂市・嬬恋村',
+      mountainName:'根子岳・四阿山',areaMunicipality:'上田市・須坂市・嬬恋村',
       police1Name:'上田警察署',police1Phone:'0268-22-0110',police2Name:'須坂警察署',police2Phone:'026-246-0110',police3Name:'長野原警察署',police3Phone:'0279-82-0110',drinkLiters:'2.0',
       durationMinutes:'370',distanceKm:'9.5',ascentM:'987',descentM:'988'
     };
@@ -42,6 +42,7 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
   await expect(page.locator('.cds-header a')).toHaveCount(0);
   await expect(page.locator('.fixed-panel')).toHaveCount(0);
   await expect(page.locator('.summary-strip')).toHaveCount(0);
+  await expect(page.getByText('市町村',{exact:true})).toBeVisible();
 
   await page.fill('#plannerStudentId','TEST-001');
   await page.fill('#plannerName','企画 太郎');
@@ -58,9 +59,16 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
 
   const normalized=await page.evaluate(()=>normalizeVisionResult({
     itinerary:[{time:'7:00',place:'菅平牧場公衆トイレ',major:true},{time:'9:00',place:'根子岳',major:true}],
-    municipalities:['上田市','須坂市','嬬恋村'],warnings:[]
+    municipalities:['長野県上田市','須坂市','群馬県嬬恋村'],warnings:[]
   }).itinerary.map(row=>row.time));
   expect(normalized).toEqual(['07:00','09:00']);
+
+  const deterministicArea=await page.evaluate(()=>municipalityArea(
+    ['長野県上田市','須坂市','群馬県嬬恋村'],
+    '志賀高原・菅平高原山域 / 長野県上田市・須坂市・群馬県嬬恋村'
+  ));
+  expect(deterministicArea).toBe('上田市・須坂市・嬬恋村');
+  expect(deterministicArea).not.toContain('志賀高原');
 
   const borderPolice=await page.evaluate(()=>window.__tozanApp.resolveNaganoPoliceStations(['上田市','須坂市','嬬恋村'],'').stations);
   expect(borderPolice).toEqual([
@@ -76,6 +84,8 @@ test('simplified Carbon flow keeps only three steps and generates a three-page P
 
   await page.evaluate(()=>window.__tozanApp.renderDocument());
   await expect(page.locator('.doc-page')).toHaveCount(3);
+  await expect(page.locator('.doc-page[data-page="1"]')).toContainText('根子岳・四阿山（上田市・須坂市・嬬恋村）');
+  await expect(page.locator('.doc-page[data-page="1"]')).not.toContainText('志賀高原');
   await expect(page.locator('.doc-page[data-page="2"] .gear-box')).toHaveCount(0);
   await expect(page.locator('.doc-page[data-page="3"] .gear-box')).toHaveCount(1);
   await expect(page.locator('.doc-page[data-page="3"] .contact-list p')).toHaveCount(7);
