@@ -105,8 +105,6 @@ function applyPoliceFromRoute(municipalities = [], areaText = '') {
   $('#police2Phone').value = stations[1]?.phone || '';
   $('#police3Name').value = stations[2]?.name || '';
   $('#police3Phone').value = stations[2]?.phone || '';
-  $('#police-secondary').classList.toggle('is-hidden', !stations[1]);
-  $('#police-tertiary').classList.toggle('is-hidden', !stations[2]);
   const note = $('#police-note');
   const needsCheck = !stations.length || unresolved.length || stations.length > 3;
   note.textContent = !stations.length ? '管轄署を確認してください。' : stations.length > 3 ? '複数の管轄があります。' : unresolved.length ? '管轄を確認してください。' : '';
@@ -128,14 +126,19 @@ async function analyzeUploads() {
     if (area) $('#areaMunicipality').value = area;
     applyPoliceFromRoute(result.municipalities, area);
 
-    state.uploads.forEach((upload,index) => { upload.routeSource = index === result.routeImageIndex; upload.classification = upload.routeSource ? 'route' : 'image'; });
-    if (result.routeImageIndex !== null && state.uploads[result.routeImageIndex]) state.routeImage = state.uploads[result.routeImageIndex].url;
+    state.uploads.forEach(upload => {
+      upload.routeSource = upload.kind === 'route';
+      upload.classification = upload.kind === 'route' ? 'route' : 'itinerary';
+    });
+    if (!state.routeImage && result.routeImageIndex !== null && state.uploads[result.routeImageIndex]) {
+      state.routeImage = state.uploads[result.routeImageIndex].url;
+    }
 
     renderUploads();
     syncMetricInputs();
     renderItinerary();
     renderRoutePreview();
-    showStatus(result.warnings.length ? '確認が必要な項目があります。' : '読み取り完了');
+    showStatus('読み取り完了');
     $('#step2-next').disabled = !state.itinerary.length || !state.routeImage;
   } catch (error) {
     console.error(error);
@@ -152,26 +155,29 @@ function showStatus(message, error = false) {
   el.classList.toggle('is-error', error);
 }
 
-function renderUploads() {
-  const root = $('#upload-list');
+function renderUploadList(kind, selector) {
+  const root = $(selector);
   root.innerHTML = '';
-  for (const upload of state.uploads) {
+  const uploads = state.uploads.filter(upload => upload.kind === kind);
+  for (const upload of uploads) {
     const card = document.createElement('article');
     card.className = 'upload-card';
-    card.innerHTML = `<img src="${upload.url}" alt="YAMAP画像"><div class="upload-card__body"><div class="upload-card__name">${escapeHtml(upload.name)}</div>${upload.routeSource ? '<div class="upload-card__meta">ルート</div>' : ''}<div class="upload-card__actions"><button class="btn btn--ghost use-route" type="button">ルート</button><button class="btn btn--danger-ghost remove-upload" type="button">削除</button></div></div>`;
-    $('.use-route',card).onclick = () => {
-      state.uploads.forEach(u => u.routeSource = false);
-      upload.routeSource = true;
-      state.routeImage = upload.url;
-      renderUploads(); renderRoutePreview();
-      $('#step2-next').disabled = !state.itinerary.length;
-    };
-    $('.remove-upload',card).onclick = () => {
-      state.uploads = state.uploads.filter(u => u.id !== upload.id);
-      if (upload.routeSource) state.routeImage = '';
-      renderUploads(); renderRoutePreview();
-      $('#step2-next').disabled = !state.itinerary.length || !state.routeImage;
+    card.innerHTML = `<img src="${upload.url}" alt="追加したYAMAP画像"><div class="upload-card__body"><div class="upload-card__name">${escapeHtml(upload.name)}</div><div class="upload-card__actions"><button class="btn btn--danger-ghost remove-upload" type="button">削除</button></div></div>`;
+    $('.remove-upload',card).onclick = async () => {
+      state.uploads = state.uploads.filter(item => item.id !== upload.id);
+      if (kind === 'route') state.routeImage = '';
+      if (kind === 'itinerary' && !state.uploads.some(item => item.kind === 'itinerary')) state.itinerary = [];
+      renderUploads();
+      renderRoutePreview();
+      $('#step2-next').disabled = true;
+      if (state.uploads.some(item => item.kind === 'route') && state.uploads.some(item => item.kind === 'itinerary')) await analyzeUploads();
+      else $('#analysis-status').classList.add('is-hidden');
     };
     root.append(card);
   }
+}
+
+function renderUploads() {
+  renderUploadList('route','#route-upload-list');
+  renderUploadList('itinerary','#itinerary-upload-list');
 }
