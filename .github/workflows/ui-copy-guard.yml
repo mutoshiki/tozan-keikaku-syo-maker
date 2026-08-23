@@ -1,0 +1,17 @@
+name: UI copy guard
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep removed internal copy out of UI
+        run: |
+          ! grep -E "画像理解AI|テンプレート固定|提出用|読み取り結果は|ブラウザ内だけ|元テンプレート" index.html app-flow.js app-view.js

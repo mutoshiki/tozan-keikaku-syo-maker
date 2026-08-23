@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#161616" />
-  <meta name="description" content="YAMAPのスクリーンショットから信州大学山歩会の登山計画書を作成します。" />
+  <meta name="description" content="YAMAPから登山計画書を作成します。" />
   <title>登山計画書メーカー</title>
   <link rel="stylesheet" href="./styles.css" />
   <script defer src="./config.js"></script>
@@ -15,119 +15,116 @@
   <script defer src="./app-view.js"></script>
 </head>
 <body>
-  <header class="cds-header" aria-label="登山計画書メーカー">
-    <a class="cds-header__name" href="#">山歩会 <span>登山計画書メーカー</span></a>
-    <a class="cds-header__link" href="./public/登山計画書テンプレ.docx" download>元テンプレート</a>
+  <header class="cds-header">
+    <div class="cds-header__name">登山計画書メーカー</div>
   </header>
 
   <main class="app-shell">
-    <section class="intro">
-      <h1>登山計画書を作成</h1>
-      <p>基本情報を入力し、YAMAPのスクリーンショットを追加すると、画像理解AIが行程・距離・標高差を読み取って提出用の計画書にまとめます。</p>
-    </section>
+    <h1>登山計画書</h1>
 
     <nav class="progress" aria-label="作成手順">
-      <button class="progress__step is-current" data-step-target="1"><span>1</span><strong>基本情報</strong></button>
-      <button class="progress__step" data-step-target="2"><span>2</span><strong>YAMAP</strong></button>
-      <button class="progress__step" data-step-target="3"><span>3</span><strong>行程確認</strong></button>
-      <button class="progress__step" data-step-target="4"><span>4</span><strong>プレビュー</strong></button>
+      <button class="progress__step is-current" data-step-target="1" type="button"><span class="progress__dot"></span><span>基本情報</span></button>
+      <button class="progress__step" data-step-target="2" type="button"><span class="progress__dot"></span><span>YAMAP</span></button>
+      <button class="progress__step" data-step-target="3" type="button"><span class="progress__dot"></span><span>確認</span></button>
     </nav>
 
     <section class="step is-active" data-step="1">
-      <div class="step-heading"><h2>基本情報</h2><p>YAMAPから分かる項目は後で自動入力します。ここでは毎回変わる連絡先などだけ入力します。</p></div>
-      <form id="basic-form" class="form-grid" autocomplete="off">
-        <label class="field"><span>実施日 *</span><input id="eventDate" type="date" required></label>
-        <label class="field"><span>集合時間 *</span><input id="meetingTime" type="time" value="05:00" required></label>
-      </form>
+      <div class="section-grid">
+        <h2>基本情報</h2>
+        <div class="section-body">
+          <div class="form-grid form-grid--2">
+            <label class="field"><span>実施日</span><input id="eventDate" type="date" required></label>
+            <label class="field"><span>集合時間</span><input id="meetingTime" type="time" value="05:00" required></label>
+          </div>
 
-      <h3 class="subheading">企画者</h3>
-      <div class="form-grid form-grid--three">
-        <label class="field"><span>学籍番号 *</span><input id="plannerStudentId" type="text" required></label>
-        <label class="field"><span>氏名 *</span><input id="plannerName" type="text" required></label>
-        <label class="field"><span>電話番号 *</span><input id="plannerPhone" type="tel" inputmode="tel" required></label>
-      </div>
-      <label class="remember-row"><input id="rememberPlanner" type="checkbox"> この端末に企画者情報を保存する <span>（ブラウザ内だけに保存）</span></label>
+          <h3>企画者</h3>
+          <div class="form-grid form-grid--3">
+            <label class="field"><span>学籍番号</span><input id="plannerStudentId" type="text" required></label>
+            <label class="field"><span>氏名</span><input id="plannerName" type="text" required></label>
+            <label class="field"><span>電話番号</span><input id="plannerPhone" type="tel" inputmode="tel" required></label>
+          </div>
 
-      <h3 class="subheading">留守本部</h3>
-      <div class="form-grid">
-        <label class="field"><span>氏名 *</span><input id="baseName" type="text" required></label>
-        <label class="field"><span>電話番号 *</span><input id="basePhone" type="tel" inputmode="tel" required></label>
-      </div>
+          <h3>留守本部</h3>
+          <div class="form-grid form-grid--2">
+            <label class="field"><span>氏名</span><input id="baseName" type="text" required></label>
+            <label class="field"><span>電話番号</span><input id="basePhone" type="tel" inputmode="tel" required></label>
+          </div>
+          <label class="checkbox-row"><input id="rememberContacts" type="checkbox"><span>連絡先を保存</span></label>
 
-      <details class="details-panel">
-        <summary>通常と違う場合だけ変更</summary>
-        <div class="form-grid details-panel__body">
-          <label class="field field--wide"><span>集合場所</span><input id="meetingPlace" type="text" value="信州大学 松本キャンパス サークルボックス前"></label>
-          <label class="field"><span>雨天時</span><select id="rainPolicy"><option>雨天中止</option><option>荒天中止</option><option>小雨決行</option></select></label>
+          <details class="details-panel">
+            <summary>集合場所・雨天</summary>
+            <div class="details-panel__body form-grid form-grid--2">
+              <label class="field field--wide"><span>集合場所</span><input id="meetingPlace" type="text" value="信州大学 松本キャンパス サークルボックス前"></label>
+              <label class="field"><span>雨天時</span><select id="rainPolicy"><option>雨天中止</option><option>荒天中止</option><option>小雨決行</option></select></label>
+            </div>
+          </details>
         </div>
-      </details>
-
-      <div class="fixed-panel"><span>テンプレート固定</span><strong>信州大学 山歩会（長野県松本市旭 3-1-1）</strong><p>学生総合支援センター課外活動：0263-37-2197</p><p>長野県警察本部地域部山岳安全対策課：026-233-0110</p></div>
+      </div>
+      <div class="step-actions step-actions--end"><button class="btn btn--primary" id="step1-next" type="button">次へ</button></div>
     </section>
 
     <section class="step" data-step="2">
-      <div class="step-heading"><h2>YAMAPスクリーンショット</h2><p>計画データ画面・ルート地図・行程画面をまとめて追加してください。順番は問いません。YAMAP画像だけを画像理解AIへ送ります。</p></div>
-      <label class="drop-zone" id="drop-zone">
-        <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
-        <span class="drop-zone__icon" aria-hidden="true">＋</span>
-        <strong>画像を追加</strong>
-        <small>PNG / JPEG / WebP・最大8枚</small>
-      </label>
-      <div id="upload-list" class="upload-grid"></div>
-      <div id="analysis-status" class="notification is-hidden" role="status"></div>
-      <div class="action-row"><button id="analyze-button" class="btn btn--primary" type="button" disabled>YAMAPから読み取る</button><span>読み取り結果は次の画面で確認・修正できます。</span></div>
+      <div class="section-grid">
+        <h2>YAMAP</h2>
+        <div class="section-body">
+          <label class="drop-zone" id="drop-zone">
+            <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+            <strong>画像を追加</strong>
+            <span>PNG、JPEG、WebP</span>
+          </label>
+          <div id="upload-list" class="upload-grid"></div>
+          <div id="analysis-status" class="inline-status is-hidden" role="status"></div>
+        </div>
+      </div>
+      <div class="step-actions"><button class="btn btn--secondary" id="step2-back" type="button">戻る</button><button class="btn btn--primary" id="step2-next" type="button" disabled>次へ</button></div>
     </section>
 
     <section class="step" data-step="3">
-      <div class="step-heading"><h2>読み取り結果を確認</h2><p>AIの結果を確認してください。「分岐」は初期状態では提出用の主要地点から外します。</p></div>
+      <div class="section-grid">
+        <h2>確認</h2>
+        <div class="section-body">
+          <div class="form-grid form-grid--2">
+            <label class="field"><span>山名</span><input id="mountainName" type="text" required></label>
+            <label class="field"><span>入山エリア</span><input id="areaMunicipality" type="text" required></label>
+          </div>
 
-      <h3 class="subheading subheading--first">山名・入山エリア</h3>
-      <div class="form-grid">
-        <label class="field"><span>山名・企画名 *</span><input id="mountainName" type="text" placeholder="例：根子岳・四阿山" required></label>
-        <label class="field"><span>山域 / 所在市町村 *</span><input id="areaMunicipality" type="text" placeholder="例：四阿山 / 長野県上田市" required></label>
-      </div>
-      <div class="inline-note">YAMAP画像から候補を読み取れた場合は自動入力します。提出前に内容を確認してください。</div>
+          <h3>計画</h3>
+          <div class="form-grid form-grid--4">
+            <label class="field"><span>時間（分）</span><input id="durationMinutes" type="number" min="0" required></label>
+            <label class="field"><span>距離（km）</span><input id="distanceKm" type="number" step="0.1" min="0" required></label>
+            <label class="field"><span>上り（m）</span><input id="ascentM" type="number" min="0" required></label>
+            <label class="field"><span>下り（m）</span><input id="descentM" type="number" min="0" required></label>
+            <label class="field"><span>飲料（L）</span><input id="drinkLiters" type="number" min="0.5" max="10" step="0.5" required></label>
+          </div>
 
-      <h3 class="subheading">計画データ</h3>
-      <div class="metrics-grid">
-        <label class="field"><span>合計時間（分）</span><input id="durationMinutes" type="number" min="0"></label>
-        <label class="field"><span>距離（km）</span><input id="distanceKm" type="number" step="0.1" min="0"></label>
-        <label class="field"><span>上り（m）</span><input id="ascentM" type="number" min="0"></label>
-        <label class="field"><span>下り（m）</span><input id="descentM" type="number" min="0"></label>
-      </div>
-      <div class="table-wrap">
-        <table class="itinerary-table">
-          <thead><tr><th>時刻</th><th>地点</th><th>提出</th><th>休憩</th><th></th></tr></thead>
-          <tbody id="itinerary-body"></tbody>
-        </table>
-      </div>
-      <button id="add-row" class="btn btn--tertiary" type="button">＋ 地点を追加</button>
-      <div class="inline-note">休憩を追加すると、それ以降の提出予定時刻を自動で繰り下げます。</div>
+          <h3>管轄</h3>
+          <div class="form-grid form-grid--2">
+            <label class="field"><span>警察署</span><input id="police1Name" type="text" required></label>
+            <label class="field"><span>電話番号</span><input id="police1Phone" type="tel" inputmode="tel" required></label>
+          </div>
+          <div id="police-secondary" class="form-grid form-grid--2 is-hidden">
+            <label class="field"><span>警察署</span><input id="police2Name" type="text"></label>
+            <label class="field"><span>電話番号</span><input id="police2Phone" type="tel" inputmode="tel"></label>
+          </div>
+          <div id="police-note" class="field-note is-hidden"></div>
 
-      <h3 class="subheading">提出先・持参物</h3>
-      <div class="form-grid form-grid--three">
-        <label class="field"><span>管轄警察署 *</span><input id="police1Name" type="text" placeholder="例：上田警察署" required></label>
-        <label class="field"><span>電話番号 *</span><input id="police1Phone" type="tel" inputmode="tel" required></label>
-        <label class="field"><span>飲料量（L） *</span><input id="drinkLiters" type="number" min="0.5" max="10" step="0.5" placeholder="例：2.0" required></label>
-        <label class="field"><span>追加連絡先（任意）</span><input id="police2Name" type="text" placeholder="別管轄の警察署・山小屋など"></label>
-        <label class="field"><span>電話番号</span><input id="police2Phone" type="tel" inputmode="tel"></label>
+          <h3>行程</h3>
+          <div class="table-wrap">
+            <table class="itinerary-table">
+              <thead><tr><th>時刻</th><th>地点</th><th>掲載</th><th>休憩（分）</th><th></th></tr></thead>
+              <tbody id="itinerary-body"></tbody>
+            </table>
+          </div>
+          <button id="add-row" class="btn btn--ghost" type="button">地点を追加</button>
+
+          <h3>ルート</h3>
+          <div id="route-preview" class="route-preview"></div>
+        </div>
       </div>
+      <div class="step-actions"><button class="btn btn--secondary" id="step3-back" type="button">戻る</button><button class="btn btn--primary" id="print-button" type="button">PDFを作成</button></div>
     </section>
 
-    <section class="step" data-step="4">
-      <div class="step-heading"><h2>提出内容を確認</h2><p>PDFにする内容です。必要なら前のステップへ戻って修正してください。</p></div>
-      <div id="summary-strip" class="summary-strip"></div>
-      <div id="document-preview" class="document-stack" aria-label="登山計画書プレビュー"></div>
-      <div class="action-row action-row--end">
-        <button id="print-button" class="btn btn--primary" type="button">PDFをダウンロード</button>
-        <span>PDFはこの端末上で作成します。</span>
-      </div>
-    </section>
-
-    <footer class="step-actions">
-      <button id="back-button" class="btn btn--secondary" type="button" disabled>戻る</button>
-      <button id="next-button" class="btn btn--primary" type="button">次へ</button>
-    </footer>
+    <div id="document-preview" class="pdf-source" aria-hidden="true"></div>
   </main>
 </body>
 </html>
