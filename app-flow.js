@@ -94,10 +94,13 @@ function applyPoliceFromRoute(municipalities = [], areaText = '') {
   $('#police1Phone').value = stations[0]?.phone || '';
   $('#police2Name').value = stations[1]?.name || '';
   $('#police2Phone').value = stations[1]?.phone || '';
+  $('#police3Name').value = stations[2]?.name || '';
+  $('#police3Phone').value = stations[2]?.phone || '';
   $('#police-secondary').classList.toggle('is-hidden', !stations[1]);
+  $('#police-tertiary').classList.toggle('is-hidden', !stations[2]);
   const note = $('#police-note');
-  const needsCheck = !stations.length || unresolved.length || stations.length > 2;
-  note.textContent = !stations.length ? '管轄署を確認してください。' : stations.length > 2 ? '複数の管轄があります。' : unresolved.length ? '管轄を確認してください。' : '';
+  const needsCheck = !stations.length || unresolved.length || stations.length > 3;
+  note.textContent = !stations.length ? '管轄署を確認してください。' : stations.length > 3 ? '複数の管轄があります。' : unresolved.length ? '管轄を確認してください。' : '';
   note.classList.toggle('is-hidden', !needsCheck);
   return stations;
 }
