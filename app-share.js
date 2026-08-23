@@ -11,15 +11,17 @@
 
   const isStep3Active = () => step3.classList.contains('is-active');
 
-  function setButton(label, disabled = false) {
+  function setButton(label, disabled = false, ready = false) {
     button.textContent = label;
     button.disabled = disabled;
+    button.dataset.pdfReady = ready ? 'true' : 'false';
   }
 
   function markDirty() {
     preparedFile = null;
     prepareVersion += 1;
     if (!isStep3Active()) return;
+    setButton('PDFを準備中…', true, false);
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => preparePdf(), 350);
   }
@@ -28,16 +30,16 @@
     if (!isStep3Active() || preparing) return;
     const version = prepareVersion;
     preparing = true;
-    setButton('PDFを準備中…', true);
+    setButton('PDFを準備中…', true, false);
     try {
       const file = await app.createPdfFile();
       if (version === prepareVersion && isStep3Active()) {
         preparedFile = file;
-        setButton('PDFを共有', false);
+        setButton('PDFを共有', false, true);
       }
     } catch (error) {
       console.error(error);
-      if (version === prepareVersion && isStep3Active()) setButton('PDFを共有', false);
+      if (version === prepareVersion && isStep3Active()) setButton('PDFを共有', false, false);
     } finally {
       document.body.classList.remove('is-pdf-export');
       preparing = false;
@@ -88,8 +90,8 @@
     downloadFile(preparedFile);
   }
 
-  // app-view.js の onclick を置き換える。
   button.onclick = null;
+  setButton('PDFを共有', false, false);
   button.addEventListener('click', sharePreparedPdf, true);
 
   step3.addEventListener('input', markDirty);
