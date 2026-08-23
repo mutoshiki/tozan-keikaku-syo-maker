@@ -3,7 +3,9 @@ import { test, expect } from '@playwright/test';
 const THEME_KEY = 'sanpokai-theme-preference-v1';
 
 async function resetTheme(page) {
-  await page.addInitScript((key) => localStorage.removeItem(key), THEME_KEY);
+  await page.goto('/');
+  await page.evaluate((key) => localStorage.removeItem(key), THEME_KEY);
+  await page.reload();
 }
 
 async function selectTheme(page, currentLabel, id) {
@@ -14,7 +16,6 @@ async function selectTheme(page, currentLabel, id) {
 async function verifyThemeFlow(page, label) {
   await page.emulateMedia({ colorScheme: 'light' });
   await resetTheme(page);
-  await page.goto('/');
   await expect(page.getByRole('button', { name: 'テーマ設定：システム設定' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.carbonTheme)).toBe('white');
 
