@@ -18,11 +18,14 @@ function json(data,status,origin){return new Response(JSON.stringify(data),{stat
 const RESPONSE_SCHEMA = {
   type:'object',
   properties:{
-    mountainName:{type:['string','null'],description:'簡潔な山名。主要な山が複数なら「・」でつなぐ。確信できなければnull。'},
-    areaMunicipality:{type:['string','null'],description:'山域 / 所在市町村。ルートが複数市町村にまたがる場合はすべて記載。確信できなければnull。'},
+    mountainName:{type:'string',nullable:true,description:'簡潔な山名。主要な山が複数なら「・」でつなぐ。確信できなければnull。'},
+    areaMunicipality:{type:'string',nullable:true,description:'山域 / 所在市町村。ルートが複数市町村にまたがる場合はすべて記載。確信できなければnull。'},
     municipalities:{type:'array',items:{type:'string'},description:'ルートが通る市町村名。例: 上田市、長和町。都道府県名は付けない。確信できるものだけ。'},
-    durationMinutes:{type:['integer','null']},distanceKm:{type:['number','null']},ascentM:{type:['integer','null']},descentM:{type:['integer','null']},
-    routeImageIndex:{type:['integer','null']},
+    durationMinutes:{type:'integer',nullable:true},
+    distanceKm:{type:'number',nullable:true},
+    ascentM:{type:'integer',nullable:true},
+    descentM:{type:'integer',nullable:true},
+    routeImageIndex:{type:'integer',nullable:true},
     itinerary:{type:'array',items:{type:'object',properties:{time:{type:'string'},place:{type:'string'},major:{type:'boolean'}},required:['time','place','major']}},
     warnings:{type:'array',items:{type:'string'}}
   },
@@ -71,6 +74,6 @@ export default{
       if(!images.length||images.length>8)return json({error:'画像は1〜8枚です。'},400,origin);
       for(const image of images)if(!/^image\/(png|jpeg|webp)$/.test(image?.mimeType||'')||typeof image?.data!=='string'||!image.data)return json({error:'PNG、JPEG、WebPを使用してください。'},400,origin);
       return json(await callGemini(images,env.GEMINI_API_KEY),200,origin);
-    }catch(error){console.error(error);return json({error:error?.message||'画像解析に失敗しました。'},500,origin);}
+    }catch(error){console.error(error);return json({error:error?.message||'読み取りに失敗しました。'},500,origin);}
   }
 };
