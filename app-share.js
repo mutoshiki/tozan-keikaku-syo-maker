@@ -12,7 +12,12 @@
   const isStep3Active = () => step3.classList.contains('is-active');
   const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  function setButton(label, disabled = false, ready = false) {
+  function actionLabel() {
+    const probe = new File([''], '登山計画書.pdf', { type:'application/pdf' });
+    return shouldUseNativeShare(probe) ? 'PDFを共有' : 'PDFを保存';
+  }
+
+  function setButton(label = actionLabel(), disabled = false, ready = false) {
     button.textContent = label;
     button.disabled = disabled;
     button.dataset.pdfReady = ready ? 'true' : 'false';
@@ -37,11 +42,11 @@
       const file = await app.createPdfFile();
       if (version === prepareVersion && isStep3Active()) {
         preparedFile = file;
-        setButton('PDFを共有', false, true);
+        setButton(actionLabel(), false, true);
       }
     } catch (error) {
       console.error(error);
-      if (version === prepareVersion && isStep3Active()) setButton('PDFを共有', false, false);
+      if (version === prepareVersion && isStep3Active()) setButton(actionLabel(), false, false);
     } finally {
       document.body.classList.remove('is-pdf-export');
       preparing = false;
@@ -73,6 +78,10 @@
     event.preventDefault();
     event.stopImmediatePropagation();
 
+    // Revalidate at the final action: the user may have changed fields after
+    // preparation or reached this control through a non-standard route.
+    if (typeof app.validateStep3 === 'function' && !app.validateStep3()) return;
+
     if (!preparedFile) {
       if (!preparing) preparePdf();
       return;
@@ -101,7 +110,7 @@
   }
 
   button.onclick = null;
-  setButton('PDFを共有', false, false);
+  setButton(actionLabel(), false, false);
   button.addEventListener('click', sharePreparedPdf, true);
 
   step3.addEventListener('input', markDirty);

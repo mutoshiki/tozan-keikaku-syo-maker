@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   GlobalTheme,
   HeaderGlobalAction,
@@ -92,17 +92,28 @@ export function useThemePreference() {
 export function ThemeHeaderControl() {
   const { preference, resolvedTheme, setPreference } = useThemePreference();
   const [expanded, setExpanded] = useState(false);
+  const triggerRef = useRef(null);
   const currentLabel = preference === SYSTEM ? 'システム設定' : preference === LIGHT ? 'ライト' : 'ダーク';
 
   const selectPreference = (value) => {
     setPreference(value);
     setExpanded(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  const handlePanelKeyDown = (event) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    event.stopPropagation();
+    setExpanded(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
   };
 
   return (
     <>
       <HeaderGlobalBar>
         <HeaderGlobalAction
+          ref={triggerRef}
           aria-label={`テーマ設定：${currentLabel}`}
           aria-expanded={expanded}
           isActive={expanded}
@@ -112,8 +123,13 @@ export function ThemeHeaderControl() {
           <Settings size={20} />
         </HeaderGlobalAction>
       </HeaderGlobalBar>
-      <HeaderPanel aria-label="テーマ設定" expanded={expanded}>
-        <div className="theme-preference-panel__content">
+      <HeaderPanel aria-label="テーマ設定" expanded={expanded} onHeaderPanelFocus={() => setExpanded(false)}>
+        <div
+          className="theme-preference-panel__content"
+          inert={!expanded}
+          aria-hidden={!expanded}
+          onKeyDown={handlePanelKeyDown}
+        >
           <p className="theme-preference-panel__title">表示テーマ</p>
           <RadioButtonGroup
             legendText="表示テーマ"

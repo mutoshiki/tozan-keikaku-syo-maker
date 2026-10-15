@@ -39,6 +39,7 @@ async function seedRainPlan(page) {
       {id:'itin2',name:'itin2.png',url:route,kind:'itinerary',classification:'itinerary',routeSource:false}
     ];
     app.state.step=2;
+    app.state.maxReachedStep=2;
     app.goToStep(3);
   });
 }

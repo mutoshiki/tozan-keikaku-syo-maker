@@ -35,7 +35,15 @@ function dataUrlPayload(dataUrl) {
 async function analyzeWithVision() {
   if (!AI_ENDPOINT) throw new Error('接続先が設定されていません。');
   const images = state.uploads.map(upload => dataUrlPayload(upload.url));
-  const response = await fetch(AI_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({images}) });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45000);
+  let response;
+  try {
+    response = await fetch(AI_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({images}), signal:controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error('読み取りが45秒以内に完了しませんでした。通信状態を確認して再試行してください。');
+    throw new Error('画像解析サービスへ接続できませんでした。通信状態を確認して再試行してください。');
+  } finally { clearTimeout(timer); }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || '読み取りに失敗しました。');
   return payload;
@@ -105,6 +113,9 @@ function applyPoliceFromRoute(municipalities = [], areaText = '') {
   $('#police2Phone').value = stations[1]?.phone || '';
   $('#police3Name').value = stations[2]?.name || '';
   $('#police3Phone').value = stations[2]?.phone || '';
+  $('#police-secondary').hidden = !stations[1];
+  $('#police-tertiary').hidden = !stations[2];
+  $('#add-police').disabled = !!stations[2];
   const note = $('#police-note');
   const needsCheck = !stations.length || unresolved.length || stations.length > 3;
   note.textContent = !stations.length ? '管轄署を確認してください。' : stations.length > 3 ? '複数の管轄があります。' : unresolved.length ? '管轄を確認してください。' : '';
@@ -112,10 +123,23 @@ function applyPoliceFromRoute(municipalities = [], areaText = '') {
   return stations;
 }
 
+function setStep2NextEnabled(enabled) {
+  const button = $('#step2-next');
+  if (!button) return;
+  button.disabled = !enabled;
+  document.dispatchEvent(new CustomEvent('tozan:step2-readiness', { detail: { enabled: !!enabled } }));
+}
+
+function markImportIncomplete() {
+  state.maxReachedStep = Math.min(state.maxReachedStep, 1);
+  setStep2NextEnabled(false);
+  renderProgress();
+}
+
 async function analyzeUploads() {
   if (!state.uploads.length || state.analyzing) return;
   state.analyzing = true;
-  $('#step2-next').disabled = true;
+  setStep2NextEnabled(false);
   showStatus('読み取り中');
   try {
     const result = normalizeVisionResult(await analyzeWithVision());
@@ -138,19 +162,30 @@ async function analyzeUploads() {
     syncMetricInputs();
     renderItinerary();
     renderRoutePreview();
-    showStatus('読み取り完了');
-    $('#step2-next').disabled = !state.itinerary.length || !state.routeImage;
+    const canContinue = state.itinerary.length > 0 && !!state.routeImage;
+    if (canContinue) {
+      state.maxReachedStep = Math.max(state.maxReachedStep, 2);
+      showStatus(`読み取り完了。行程${state.itinerary.length}地点を取り込みました。確認画面で内容を照合してください。`);
+    }
+    else showStatus('読み取りは完了しましたが、行程を確認画面へ進めるだけ読み取れませんでした。行程画像を追加するか、画像を差し替えて再試行してください。', true, true);
+    setStep2NextEnabled(canContinue);
   } catch (error) {
     console.error(error);
-    showStatus(error.message, true);
+    showStatus(`画像を読み取れませんでした。${error.message || '画像を確認してください。'} 画像を差し替えるか、再試行してください。`, true, true);
   } finally {
     state.analyzing = false;
   }
 }
 
-function showStatus(message, error = false) {
+function showStatus(message, error = false, canRetry = false) {
   const el = $('#analysis-status');
-  el.textContent = message;
+  el.replaceChildren(document.createTextNode(message));
+  if (canRetry && canAnalyzeUploads()) {
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.className = 'btn btn--danger-ghost'; retry.textContent = '読み取りを再試行';
+    retry.onclick = () => analyzeUploads();
+    el.append(document.createElement('br'), retry);
+  }
   el.classList.remove('is-hidden');
   el.classList.toggle('is-error', error);
 }
@@ -162,16 +197,20 @@ function renderUploadList(kind, selector) {
   for (const upload of uploads) {
     const card = document.createElement('article');
     card.className = 'upload-card';
-    card.innerHTML = `<img src="${upload.url}" alt="追加したYAMAP画像"><div class="upload-card__body"><div class="upload-card__name">${escapeHtml(upload.name)}</div><div class="upload-card__actions"><button class="btn btn--danger-ghost remove-upload" type="button">削除</button></div></div>`;
+    const position = kind === 'route' ? 'ルート' : `行程${uploads.indexOf(upload) + 1}`;
+    card.innerHTML = `<details class="upload-card__zoom"><summary aria-label="${position}画像を拡大"><img class="upload-card__thumb" src="${upload.url}" alt=""><span>${position}画像を拡大</span></summary><img class="upload-card__zoom-image" src="${upload.url}" alt="${position}画像の拡大表示"></details><div class="upload-card__body"><strong class="upload-card__meta">${position}</strong><div class="upload-card__name">${escapeHtml(upload.name)}</div></div><div class="upload-card__actions"><button class="btn btn--danger-ghost remove-upload" type="button" aria-label="${position}画像 ${escapeHtml(upload.name)}を削除">削除</button></div>`;
     $('.remove-upload',card).onclick = async () => {
       state.uploads = state.uploads.filter(item => item.id !== upload.id);
+      markImportIncomplete();
+      pendingPdfFile = null;
+      markPreparedPdfDirty();
       if (kind === 'route') state.routeImage = '';
       if (kind === 'itinerary' && !state.uploads.some(item => item.kind === 'itinerary')) state.itinerary = [];
       renderUploads();
       renderRoutePreview();
-      $('#step2-next').disabled = true;
+      setStep2NextEnabled(false);
       if (state.uploads.some(item => item.kind === 'route') && state.uploads.some(item => item.kind === 'itinerary')) await analyzeUploads();
-      else $('#analysis-status').classList.add('is-hidden');
+      else showStatus(kind === 'route' ? 'ルート画像を削除しました。別のルート画像を追加してください。' : '行程画像を削除しました。行程画像を追加してください。', true);
     };
     root.append(card);
   }

@@ -52,7 +52,7 @@ async function run(browser, name, viewport) {
   });
 
   await page.setContent(inlined, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.getByRole('heading', { name: '登山計画書', level: 1 }).waitFor({ timeout: 60000 });
+  await page.getByRole('heading', { name: '基本情報', level: 1 }).waitFor({ timeout: 60000 });
   await page.getByRole('button', { name: 'テーマ設定：システム設定' }).waitFor({ timeout: 60000 });
   await page.waitForFunction(() => document.documentElement.dataset.carbonTheme === 'white');
 
@@ -62,7 +62,7 @@ async function run(browser, name, viewport) {
     carbonButtons: document.querySelectorAll('.cds--btn').length,
     eventDateHeight: document.querySelector('#eventDate')?.getBoundingClientRect().height || 0,
   }));
-  if (initial.heading !== '登山計画書') throw new Error(`${name}: React heading regression`);
+  if (initial.heading !== '基本情報') throw new Error(`${name}: React heading regression`);
   if (initial.carbonButtons < 4) throw new Error(`${name}: expected Carbon actions are missing`);
   if (initial.eventDateHeight < 44) throw new Error(`${name}: primary field target is too small`);
   if (initial.overflowX > 1) throw new Error(`${name}: initial horizontal overflow ${initial.overflowX}px`);

@@ -39,7 +39,7 @@ async function seedPlan(page) {
       {time:'13:05',place:'四阿山登山口（中四阿経由）',major:true,restMinutes:0},{time:'13:10',place:'菅平牧場公衆トイレ',major:true,restMinutes:0}
     ];
     app.state.routeImage=c.toDataURL('image/png');
-    app.state.step=2;app.goToStep(3);
+    app.state.step=2;app.state.maxReachedStep=2;app.goToStep(3);
   });
 }
 
@@ -91,7 +91,7 @@ test('guided YAMAP step separates route and itinerary images', async ({ page }) 
     'public/examples/yamap-itinerary-1.webp',
     'public/examples/yamap-itinerary-2.webp'
   ]);
-  await expect(page.locator('#analysis-status')).toHaveText('読み取り完了');
+  await expect(page.locator('#analysis-status')).toContainText('読み取り完了。行程3地点を取り込みました。');
   expect(analyzeCalls).toBe(1);
   expect(imageCount).toBe(3);
   await expect(page.locator('#route-upload-list .upload-card')).toHaveCount(1);

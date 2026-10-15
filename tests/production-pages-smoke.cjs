@@ -11,7 +11,7 @@ async function openWithRetry(page) {
     try {
       const response = await page.goto(LIVE_URL, { waitUntil: 'domcontentloaded', timeout: 45000 });
       if (response && response.status() >= 400) throw new Error(`HTTP ${response.status()}`);
-      await page.getByRole('heading', { name: '登山計画書', level: 1 }).waitFor({ timeout: 10000 });
+      await page.getByRole('heading', { name: '基本情報', level: 1 }).waitFor({ timeout: 10000 });
       return response;
     } catch (error) {
       lastError = error;
@@ -83,7 +83,7 @@ async function waitForTheme(page, theme) {
   await page.screenshot({ path: `${OUT}/mobile-dark.png`, fullPage: true });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.getByRole('heading', { name: '登山計画書', level: 1 }).waitFor({ timeout: 15000 });
+  await page.getByRole('heading', { name: '基本情報', level: 1 }).waitFor({ timeout: 15000 });
   await waitForTheme(page, 'g100');
   if (await page.evaluate(() => localStorage.getItem('sanpokai-theme-preference-v1')) !== 'dark') {
     throw new Error('dark preference was not preserved after production reload');

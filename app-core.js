@@ -4,6 +4,7 @@ const MOUNTAIN_SAFETY_PHONE = '026-233-0110';
 
 const state = {
   step: 1,
+  maxReachedStep: 1,
   uploads: [],
   metrics: { durationMinutes: null, distanceKm: null, ascentM: null, descentM: null },
   itinerary: [],
