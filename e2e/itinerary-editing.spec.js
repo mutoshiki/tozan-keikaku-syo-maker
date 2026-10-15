@@ -14,43 +14,27 @@ async function enterReview(page) {
   });
 }
 
-test('itineraryControlsHaveContextualNamesAndKeepFocusAfterEdit', async ({ page }) => {
+test('confirmationHidesItineraryEditorsButPdfKeepsTheJourney', async ({ page }) => {
   await enterReview(page);
   await expect(page.locator('.step[data-step="3"] h1')).toBeFocused();
-  await page.getByRole('button', {name:'09:00 長い地点名の例 松本市方面を編集'}).click();
-  const place = page.getByRole('textbox', { name:'09:00 長い地点名の例 松本市方面の地点名' });
-  await expect(place).toBeVisible();
-  const rest = page.getByRole('spinbutton', { name:'09:00 長い地点名の例 松本市方面の休憩時間（分）' });
-  await rest.fill('15');
-  await expect(rest).toBeFocused();
-  await expect(page.locator('#itinerary-body tr').last()).toContainText('14:49');
-  await page.getByRole('button', {name:'08:00 車坂峠を編集'}).click();
-  await expect(page.locator('#itinerary-body tr').first().getByRole('checkbox', { name:'08:00 車坂峠をPDFに掲載' })).toBeVisible();
-
-  const time = page.getByLabel('09:00 長い地点名の例 松本市方面の時刻');
-  await time.fill('09:30');
-  const updatedTime = page.getByLabel('09:30 長い地点名の例 松本市方面の時刻');
-  await expect(updatedTime).toBeFocused();
-  await page.getByRole('button', { name:'09:30 長い地点名の例 松本市方面を削除' }).click();
-  await expect(page.getByRole('button', { name:'車坂峠を削除' }).last()).toBeFocused();
+  await expect(page.getByRole('heading', {name:'行程', exact:true})).toHaveCount(0);
+  await expect(page.locator('#itinerary-body')).toHaveCount(0);
+  await expect(page.locator('#document-preview')).toContainText('08:00');
+  await expect(page.locator('#document-preview')).toContainText('14:34');
 });
 
-test('mobileItineraryControlsFitWithoutPreExportSummary', async ({ page }) => {
+test('mobileConfirmationOmitsReviewItineraryAndKeepsPdfContents', async ({ page }) => {
   await page.setViewportSize({width:390,height:844});
   await enterReview(page);
-  await expect(page.getByRole('heading', { name:'出力前の概要' })).toHaveCount(0);
+  await expect(page.getByRole('heading', {name:'出力前の概要'})).toHaveCount(0);
   await expect(page.locator('#meetingPlace')).toHaveValue('長い集合場所の名前 信州大学松本キャンパス');
-  await expect(page.locator('#itinerary-body')).toContainText('14:34');
+  await expect(page.locator('#itinerary-body')).toHaveCount(0);
+  await expect(page.locator('#document-preview')).toContainText('14:34');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
-  const edit = page.getByRole('button', {name:'09:00 長い地点名の例 松本市方面を編集'});
-  await expect(edit).toBeVisible();
-  await edit.click();
-  await expect(page.getByRole('button', {name:'09:00 長い地点名の例 松本市方面を削除'})).toBeVisible();
   await page.setViewportSize({width:320,height:844});
   const narrowOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(narrowOverflow).toBeLessThanOrEqual(1);
-  await expect(page.getByRole('button', {name:'09:00 長い地点名の例 松本市方面を削除'})).toBeVisible();
 });
 
 test('reviewPdfPreviewCanOpenAndInvalidatesAfterEdit', async ({ page }) => {
@@ -67,7 +51,7 @@ test('reviewPdfPreviewCanOpenAndInvalidatesAfterEdit', async ({ page }) => {
 
 test('completedStepCanBeRevisitedAndReturnsFocusToItsHeading', async ({ page }) => {
   await enterReview(page);
-  await page.locator('#edit-basic').click();
+  await page.locator('[data-step-target="1"]').click();
   await expect(page.locator('.step[data-step="1"]')).toBeVisible();
   await expect(page.locator('#step-heading-1')).toBeFocused();
   await expect(page.locator('[data-step-target="2"]')).toBeEnabled();

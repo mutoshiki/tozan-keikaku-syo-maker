@@ -22,6 +22,7 @@ function closePdfPreview() {
 
 function renderItinerary(focusTarget = null) {
   const body = $('#itinerary-body');
+  if (!body) return;
   body.innerHTML = '';
   const adjusted = adjustedRows();
   state.itinerary.forEach((row,index) => {
@@ -54,7 +55,6 @@ function renderItinerary(focusTarget = null) {
       $('.row-remove',tr).setAttribute('aria-label', `${row.time} ${name}を削除`);
       editButton.setAttribute('aria-label', `${row.time} ${name}を編集`);
       $('.itinerary-place',tr).textContent = name;
-      renderReviewSummary();
       markPreparedPdfDirty();
     };
     $('.row-major',tr).onchange = e => {
@@ -62,7 +62,7 @@ function renderItinerary(focusTarget = null) {
       const status = $('.itinerary-inclusion',tr);
       status.textContent = row.major ? 'PDFに掲載' : 'PDFに掲載しない';
       status.classList.toggle('is-excluded', !row.major);
-      renderReviewSummary(); markPreparedPdfDirty();
+      markPreparedPdfDirty();
     };
     $('.row-rest',tr).oninput = e => {
       row.restMinutes = Number(e.target.value || 0);
@@ -76,7 +76,6 @@ function renderItinerary(focusTarget = null) {
           else { const label = document.createElement('div'); label.className = 'adjusted'; label.textContent = `→ ${next}`; cell.append(label); }
         } else old?.remove();
       });
-      renderReviewSummary();
       markPreparedPdfDirty();
     };
     $('.row-remove',tr).onclick = () => {
@@ -93,13 +92,6 @@ function renderItinerary(focusTarget = null) {
     const target = index >= 0 ? $(`.${focusTarget.control}`, body.rows[index]) : focusTarget.fallback ? $(focusTarget.fallback) : null;
     target?.focus();
   }
-}
-
-function renderReviewSummary() {
-  const refs = $('#review-upload-references');
-  if (!refs) return;
-  let itineraryIndex = 0;
-  refs.innerHTML = state.uploads.length ? `<details><summary>読み取り元画像を確認（${state.uploads.length}枚）</summary><ul>${state.uploads.map(upload => `<li>${upload.kind === 'route' ? 'ルート' : `行程${++itineraryIndex}`}：${escapeHtml(upload.name)}</li>`).join('')}</ul></details>` : '<p>読み取り元画像はありません。</p>';
 }
 
 function renderRoutePreview() {
@@ -339,7 +331,7 @@ function goToStep(step) {
   $$('.step').forEach(el => el.classList.toggle('is-active', Number(el.dataset.step) === state.step));
   renderProgress();
   if (state.step !== 3) closePdfPreview();
-  if (state.step === 3) { syncMetricInputs(); renderItinerary(); renderRoutePreview(); renderReviewSummary(); }
+  if (state.step === 3) { syncMetricInputs(); renderRoutePreview(); }
   window.scrollTo({top:0,behavior:'instant'});
   $(`#step-heading-${state.step}`)?.focus({preventScroll:true});
 }
@@ -501,12 +493,6 @@ async function downloadPdf() {
 
 function bind() {
   ['durationMinutes','distanceKm','ascentM','descentM'].forEach(key => $(`#${key}`).addEventListener('input', e => { pendingPdfFile = null; state.metrics[key] = e.target.value === '' ? null : Number(e.target.value); }));
-  $('#add-row').onclick = () => {
-    pendingPdfFile = null;
-    const row = {time:'12:00',place:'',major:true,restMinutes:0,_editing:true};
-    state.itinerary.push(row); state.itinerary.sort((a,b)=>a.time.localeCompare(b.time));
-    renderItinerary({row, control:'row-place'}); markPreparedPdfDirty();
-  };
   $('#add-police').onclick = () => {
     const secondary = $('#police-secondary'), tertiary = $('#police-tertiary');
     if (secondary.hidden) {
@@ -526,8 +512,6 @@ function bind() {
   $('#step2-next').onclick = () => goToStep(3);
   $('#step3-back').onclick = () => goToStep(2);
   $('#print-button').onclick = downloadPdf;
-  $('#edit-basic').onclick = () => goToStep(1);
-  $('#edit-import').onclick = () => goToStep(2);
   $('#toggle-pdf-preview').onclick = async event => {
     const button = event.currentTarget;
     const root = $('#pdf-preview');
@@ -553,8 +537,8 @@ function bind() {
   $$('.progress__step').forEach(btn => btn.onclick = () => { const n = Number(btn.dataset.stepTarget); if (n <= state.maxReachedStep) goToStep(n); });
   $('#rememberContacts').onchange = () => { if ($('#rememberContacts').checked) saveContacts(); else localStorage.removeItem(CONTACT_STORAGE_KEY); };
   CONTACT_IDS.forEach(id => $(`#${id}`).addEventListener('input', saveContacts));
-  $('.step[data-step="3"]').addEventListener('input', () => { pendingPdfFile = null; renderReviewSummary(); closePdfPreview(); });
-  $('.step[data-step="3"]').addEventListener('change', () => { renderReviewSummary(); closePdfPreview(); });
+  $('.step[data-step="3"]').addEventListener('input', () => { pendingPdfFile = null; closePdfPreview(); });
+  $('.step[data-step="3"]').addEventListener('change', () => { closePdfPreview(); });
   [1,3].forEach(step => $(`.step[data-step="${step}"]`).addEventListener('input', e => {
     if (e.target.matches('.field input, .field select')) {
       clearFieldError(e.target);
@@ -571,5 +555,4 @@ bind();
 loadContacts();
 syncMetricInputs();
 renderItinerary();
-  renderReviewSummary();
-  window.__tozanApp = { state, adjustedRows, renderDocument, renderReviewSummary, renderUploads, renderProgress, goToStep, downloadPdf, validateStep3, resolveNaganoPoliceStations, addFiles, canAnalyzeUploads, fitJourneyToPage, fitRouteImageForPdf, createPdfFile };
+window.__tozanApp = { state, adjustedRows, renderDocument, renderUploads, renderProgress, goToStep, downloadPdf, validateStep3, resolveNaganoPoliceStations, addFiles, canAnalyzeUploads, fitJourneyToPage, fitRouteImageForPdf, createPdfFile };

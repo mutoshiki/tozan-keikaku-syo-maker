@@ -90,17 +90,17 @@ test('hidesUnusedPoliceFieldsFromLayoutAndKeyboardUntilAdded', async ({ page }) 
 
 test('revisitingCompletedStepsKeepsThemAvailableAndPreservesData', async ({ page }) => {
   await enterReview(page);
-  await page.locator('#edit-basic').click();
+  await page.locator('[data-step-target="1"]').click();
   await expect(page.locator('[data-step-target="2"]')).toBeEnabled();
   await expect(page.locator('[data-step-target="2"]')).toHaveAttribute('aria-label', /完了/);
   await page.locator('[data-step-target="2"]').click();
   await expect(page.locator('[data-step-target="3"]')).toBeEnabled();
   await page.locator('[data-step-target="3"]').click();
   await expect(page.locator('#mountainName')).toHaveValue('黒斑山');
-  await expect(page.locator('#itinerary-body')).toContainText('14:34');
+  await expect(page.locator('#document-preview')).toContainText('14:34');
 });
 
-test('showsACompactFullItineraryAndOpensContextualEditorsOnDemand', async ({ page }) => {
+test('hidesConfirmationItineraryCardsWhileKeepingAllRowsInThePdf', async ({ page }) => {
   const rows = Array.from({ length: 21 }, (_, index) => ({
     time: `${String(8 + Math.floor(index / 4)).padStart(2, '0')}:${String((index % 4) * 15).padStart(2, '0')}`,
     place: index === 20 ? '長い地点名を最後まで表示できる到着地点' : `地点${index + 1}`,
@@ -108,25 +108,16 @@ test('showsACompactFullItineraryAndOpensContextualEditorsOnDemand', async ({ pag
     restMinutes: 0,
   }));
   await enterReview(page, rows);
-  await expect(page.locator('#itinerary-body tr')).toHaveCount(21);
-  await expect(page.locator('#itinerary-body')).toContainText('08:00');
-  await expect(page.locator('#itinerary-body')).toContainText('長い地点名を最後まで表示できる到着地点');
-  await expect(page.locator('.itinerary-editor[hidden] input:visible')).toHaveCount(0);
-  const edit = page.getByRole('button', { name: '09:15 地点6を編集' });
-  await edit.click();
-  await expect(page.getByLabel('09:15 地点6の時刻')).toBeVisible();
-  await expect(page.getByLabel('09:15 地点6の地点名')).toBeVisible();
-  await expect(page.getByRole('button', { name: '09:15 地点6を削除' })).toBeVisible();
+  await expect(page.getByRole('heading', {name:'行程', exact:true})).toHaveCount(0);
+  await expect(page.locator('#itinerary-body')).toHaveCount(0);
+  await expect(page.locator('#document-preview')).toContainText('08:00');
+  await expect(page.locator('#document-preview')).toContainText('長い地点名を最後まで表示できる到着地点');
 });
 
-test('listsImageReferencesInAnOptionalDisclosureAndNamesEachZoomControl', async ({ page }) => {
+test('omitsReviewToolsAndKeepsNamedImageZoomControlsOnTheYamapStep', async ({ page }) => {
   await enterReview(page);
-  const refs = page.locator('#review-upload-references details');
-  await expect(refs).toBeVisible();
-  await expect(refs).not.toHaveAttribute('open', '');
-  await refs.locator('summary').click();
-  await expect(refs).toContainText('itinerary-3.png');
-  await page.locator('#edit-import').click();
+  await expect(page.locator('.review-tools')).toHaveCount(0);
+  await page.locator('[data-step-target="2"]').click();
   await expect(page.locator('#route-upload-list details summary')).toHaveAttribute('aria-label', 'ルート画像を拡大');
   await expect(page.locator('#itinerary-upload-list details summary').first()).toHaveAttribute('aria-label', '行程1画像を拡大');
   const zoom = page.locator('#route-upload-list details');

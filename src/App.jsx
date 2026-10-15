@@ -163,14 +163,6 @@ export default function App() {
           <Grid narrow className="section-grid">
             <Column className="section-heading-column" sm={4} md={2} lg={4}><h1 id="step-heading-3" tabIndex="-1">確認と修正</h1></Column>
             <Column className="section-body-column" sm={4} md={6} lg={12}><div className="section-body">
-              <section className="review-tools" aria-label="確認内容の修正">
-                <div className="review-summary__links">
-                  <Button kind="ghost" id="edit-basic" type="button">基本情報を修正</Button>
-                  <Button kind="ghost" id="edit-import" type="button">画像と読み取りを修正</Button>
-                </div>
-                <p className="review-ai-note">AIが画像から自動で読み取った内容です。地点・時刻・数値・管轄署を元画像と照合してください。</p>
-                <div id="review-upload-references" className="review-upload-references" />
-              </section>
               <div className="form-grid form-grid--2">
                 <NativeField id="mountainName" label="山名" required />
                 <NativeField id="areaMunicipality" label="市町村" required />
@@ -209,15 +201,6 @@ export default function App() {
               </fieldset>
               <Button id="add-police" kind="ghost" type="button">管轄を追加</Button>
               <div id="police-note" className="field-note is-hidden" />
-
-              <h3>行程</h3>
-              <div className="table-wrap">
-                <table className="itinerary-table">
-                  <thead><tr><th scope="col">時刻</th><th scope="col">地点</th><th scope="col">PDFへの掲載</th><th scope="col">操作</th></tr></thead>
-                  <tbody id="itinerary-body" />
-                </table>
-              </div>
-              <Button id="add-row" kind="ghost" type="button">地点を追加</Button>
 
               <h3>ルート</h3>
               <div id="route-preview" className="route-preview" />

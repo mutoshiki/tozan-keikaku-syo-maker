@@ -36,14 +36,13 @@ async function enterReview(page) {
   });
 }
 
-test('removingItineraryRowInvalidatesPreparedPdf', async ({ page }) => {
+test('editingConfirmationFieldInvalidatesPreparedPdfWithoutRemovingItsItinerary', async ({ page }) => {
   await enterReview(page);
   const button = page.locator('#print-button');
   await expect(button).toHaveAttribute('data-pdf-ready', 'true', { timeout: 30000 });
   const firstFile = await page.evaluate(() => window.__tozanShare.getPreparedFile().name);
 
-  await page.getByRole('button', {name:'08:00 削除対象の地点を編集'}).click();
-  await page.getByRole('button', {name:'08:00 削除対象の地点を削除'}).click();
+  await page.fill('#mountainName', '変更後の山名');
   await expect.poll(() => page.evaluate(() => window.__tozanShare.getPreparedFile())).toBeNull();
   await expect(button).toHaveAttribute('data-pdf-ready', 'true', { timeout: 30000 });
 
@@ -52,17 +51,19 @@ test('removingItineraryRowInvalidatesPreparedPdf', async ({ page }) => {
     preview: document.querySelector('#document-preview').textContent,
     rowCount: window.__tozanApp.state.itinerary.length,
   }));
-  expect(result.name).toBe(firstFile);
-  expect(result.rowCount).toBe(2);
-  expect(result.preview).not.toContain('削除対象の地点');
+  expect(result.name).not.toBe(firstFile);
+  expect(result.rowCount).toBe(3);
+  expect(result.preview).toContain('削除対象の地点');
+  expect(result.preview).toContain('変更後の山名');
 });
 
-test('confirmationOmitsThePreExportOverviewButKeepsThePdfContents', async ({ page }) => {
+test('confirmationOmitsReviewToolsAndItineraryButKeepsThePdfContents', async ({ page }) => {
   await enterReview(page);
   await expect(page.getByRole('heading', { name:'出力前の概要' })).toHaveCount(0);
   await expect(page.locator('#review-summary-content')).toHaveCount(0);
-  await expect(page.locator('#edit-basic')).toBeVisible();
-  await expect(page.locator('#review-upload-references details')).toBeVisible();
+  await expect(page.locator('.review-tools')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name:'行程', exact:true })).toHaveCount(0);
+  await expect(page.locator('#itinerary-body')).toHaveCount(0);
   await expect(page.locator('#document-preview')).toContainText('≪概要≫');
   await expect(page.locator('#document-preview')).toContainText('≪行程≫');
   await expect(page.locator('#document-preview')).toContainText('削除対象の地点');

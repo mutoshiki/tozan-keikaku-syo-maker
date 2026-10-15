@@ -246,12 +246,6 @@ button, input, select, textarea { font: inherit; }
 .route-preview { height: 360px; background: var(--cds-layer-01); border: 1px solid var(--cds-border-subtle-01); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .route-preview img { width: 100%; height: 100%; object-fit: contain; }
 .route-preview:empty::before { content: '画像なし'; font-size: .75rem; color: var(--cds-text-secondary); }
-.review-tools { padding: 1rem 1.25rem; margin-bottom: 2rem; background: var(--cds-layer-01); border-inline-start: 3px solid var(--cds-link-primary); }
-.review-summary__links { display: flex; flex-wrap: wrap; gap: .5rem; }
-.review-ai-note, .review-upload-references { color: var(--cds-text-secondary); font-size: .75rem; line-height: 1.5; }
-.review-upload-references ul { margin: .25rem 0; padding-left: 1.25rem; }
-.review-upload-references summary { display: inline-flex; align-items: center; min-height: 2rem; color: var(--cds-link-primary); cursor: pointer; }
-.review-upload-references summary:focus-visible { outline: 2px solid var(--cds-focus); outline-offset: 2px; }
 .pdf-preview-actions { margin-top: 1.5rem; }
 .pdf-preview iframe { width: 100%; height: min(75vh, 56rem); border: 1px solid var(--cds-border-subtle-01); background: white; }
 
