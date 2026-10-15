@@ -30,7 +30,9 @@ export default function App() {
   useEffect(() => {
     const onReadiness = (event) => setStep2Ready(!!event.detail?.enabled);
     document.addEventListener('tozan:step2-readiness', onReadiness);
-    return () => document.removeEventListener('tozan:step2-readiness', onReadiness);
+    return () => {
+      document.removeEventListener('tozan:step2-readiness', onReadiness);
+    };
   }, []);
 
   return (
@@ -49,6 +51,12 @@ export default function App() {
           <button className="progress__step" data-step-target="2" type="button" aria-label="YAMAP、未開始" disabled><span className="progress__dot" /><span>YAMAP</span></button>
           <button className="progress__step" data-step-target="3" type="button" aria-label="確認、未開始" disabled><span className="progress__dot" /><span>確認</span></button>
         </nav>
+        </Column>
+
+        <Column className="app-shell-sample-notice" sm={4} md={8} lg={16}>
+          <div id="sample-data-notice" className="sample-data-notice is-hidden" role="status" aria-live="polite">
+            サンプルデータを表示中です。連絡先・山名・管轄などは架空です。実際の登山や提出には使用しないでください。
+          </div>
         </Column>
 
         <Column className="app-shell-step" sm={4} md={8} lg={16}>
@@ -185,14 +193,14 @@ export default function App() {
                   <NativeField id="police1Phone" label="第一管轄の電話番号" type="tel" inputMode="tel" required />
                 </div>
               </fieldset>
-              <fieldset id="police-secondary" className="form-fieldset form-fieldset--compact police-row" hidden>
+              <fieldset id="police-secondary" className="form-fieldset form-fieldset--compact police-row is-hidden">
                 <legend>第二管轄</legend>
                 <div className="form-grid form-grid--2">
                   <NativeField id="police2Name" label="第二管轄の警察署" optional />
                   <NativeField id="police2Phone" label="第二管轄の電話番号" type="tel" inputMode="tel" optional />
                 </div>
               </fieldset>
-              <fieldset id="police-tertiary" className="form-fieldset form-fieldset--compact police-row" hidden>
+              <fieldset id="police-tertiary" className="form-fieldset form-fieldset--compact police-row is-hidden">
                 <legend>第三管轄</legend>
                 <div className="form-grid form-grid--2">
                   <NativeField id="police3Name" label="第三管轄の警察署" optional />

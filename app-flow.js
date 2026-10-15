@@ -113,8 +113,8 @@ function applyPoliceFromRoute(municipalities = [], areaText = '') {
   $('#police2Phone').value = stations[1]?.phone || '';
   $('#police3Name').value = stations[2]?.name || '';
   $('#police3Phone').value = stations[2]?.phone || '';
-  $('#police-secondary').hidden = !stations[1];
-  $('#police-tertiary').hidden = !stations[2];
+  $('#police-secondary').classList.toggle('is-hidden', !stations[1]);
+  $('#police-tertiary').classList.toggle('is-hidden', !stations[2]);
   $('#add-police').disabled = !!stations[2];
   const note = $('#police-note');
   const needsCheck = !stations.length || unresolved.length || stations.length > 3;
@@ -137,6 +137,11 @@ function markImportIncomplete() {
 }
 
 async function analyzeUploads() {
+  // Bundled sample images are for UI inspection only and must never reach the vision service.
+  if (state.sampleDataActive) {
+    showStatus('サンプル画像を表示中です。画像解析は実行していません。');
+    return;
+  }
   if (!state.uploads.length || state.analyzing) return;
   state.analyzing = true;
   setStep2NextEnabled(false);

@@ -6,6 +6,135 @@ function markPreparedPdfDirty() {
   window.__tozanShare?.markDirty();
 }
 
+const SAMPLE_DATA = {
+  standard: {
+    label: '標準的な日帰りサンプル',
+    complete: true,
+    form: {
+      eventDate:'2026-10-20', meetingTime:'08:00', meetingPlace:'サンプル登山口 駐車場', rainPolicy:'雨天中止',
+      plannerStudentId:'SAMPLE-001', plannerName:'機能確認用 企画者', plannerPhone:'000-0000-0000',
+      baseName:'機能確認用 留守本部', basePhone:'000-0000-0000',
+      mountainName:'黒斑山（サンプル）', areaMunicipality:'サンプル県 サンプル市',
+      durationMinutes:'394', distanceKm:'9.6', ascentM:'880', descentM:'878', drinkLiters:'2.0',
+      police1Name:'サンプル警察署', police1Phone:'000-0000-0000', police2Name:'', police2Phone:'', police3Name:'', police3Phone:'',
+    },
+    images:['yamap-route.webp','yamap-itinerary-1.webp'],
+    itinerary:[
+      {time:'08:00',place:'サンプル登山口',major:true,restMinutes:0},
+      {time:'10:00',place:'サンプル山頂',major:true,restMinutes:20},
+      {time:'14:34',place:'サンプル登山口',major:true,restMinutes:0},
+    ],
+    metrics:{durationMinutes:394,distanceKm:9.6,ascentM:880,descentM:878},
+  },
+  complex: {
+    label:'長い行程・複数管轄サンプル',
+    complete:true,
+    form:{
+      eventDate:'2026-10-24', meetingTime:'05:30', meetingPlace:'機能確認用 集合場所', rainPolicy:'荒天中止',
+      plannerStudentId:'SAMPLE-002', plannerName:'機能確認用 企画者（長行程）', plannerPhone:'000-0000-0000',
+      baseName:'機能確認用 留守本部', basePhone:'000-0000-0000',
+      mountainName:'サンプル縦走コース', areaMunicipality:'サンプル県 サンプル市・サンプル村',
+      durationMinutes:'720', distanceKm:'18.4', ascentM:'1450', descentM:'1420', drinkLiters:'3.0',
+      police1Name:'サンプル第一警察署', police1Phone:'000-0000-0000',
+      police2Name:'サンプル第二警察署', police2Phone:'000-0000-0000',
+      police3Name:'サンプル第三警察署', police3Phone:'000-0000-0000',
+    },
+    images:['yamap-route.webp','yamap-itinerary-1.webp','yamap-itinerary-2.webp'],
+    itinerary:[
+      {time:'06:00',place:'サンプル登山口（東側駐車場）',major:true,restMinutes:0},
+      {time:'06:45',place:'第一分岐',major:false,restMinutes:5},
+      {time:'07:30',place:'サンプル展望台',major:true,restMinutes:10},
+      {time:'08:15',place:'長い行程の地点名・北側稜線分岐',major:false,restMinutes:5},
+      {time:'09:00',place:'サンプル第一ピーク',major:true,restMinutes:20},
+      {time:'10:00',place:'サンプル鞍部',major:true,restMinutes:10},
+      {time:'11:00',place:'長い行程の地点名・中央避難小屋前',major:true,restMinutes:30},
+      {time:'12:00',place:'サンプル第二ピーク',major:true,restMinutes:15},
+      {time:'12:30',place:'長い行程の地点名・稜線上の休憩地点',major:true,restMinutes:10},
+      {time:'13:15',place:'第三分岐',major:false,restMinutes:5},
+      {time:'14:00',place:'サンプル湿原',major:true,restMinutes:20},
+      {time:'15:00',place:'サンプル下山口',major:true,restMinutes:0},
+      {time:'16:00',place:'サンプル駐車場',major:true,restMinutes:0},
+    ],
+    metrics:{durationMinutes:720,distanceKm:18.4,ascentM:1450,descentM:1420},
+  },
+  validation: {
+    label:'入力エラー確認サンプル',
+    complete:false,
+    form:{
+      eventDate:'2026-10-20', meetingTime:'08:00', meetingPlace:'', rainPolicy:'雨天中止',
+      plannerStudentId:'SAMPLE-003', plannerName:'', plannerPhone:'', baseName:'', basePhone:'',
+      mountainName:'', areaMunicipality:'', durationMinutes:'', distanceKm:'', ascentM:'', descentM:'', drinkLiters:'2.0',
+      police1Name:'', police1Phone:'', police2Name:'', police2Phone:'', police3Name:'', police3Phone:'',
+    },
+    images:[], itinerary:[], metrics:{durationMinutes:null,distanceKm:null,ascentM:null,descentM:null},
+  },
+};
+
+const SAMPLE_FIELD_IDS = ['eventDate','meetingTime','meetingPlace','rainPolicy','plannerStudentId','plannerName','plannerPhone','baseName','basePhone','mountainName','areaMunicipality','durationMinutes','distanceKm','ascentM','descentM','drinkLiters','police1Name','police1Phone','police2Name','police2Phone','police3Name','police3Phone'];
+
+function loadSampleData(sampleId) {
+  const sample = SAMPLE_DATA[sampleId];
+  if (!sample) return '';
+
+  pendingPdfFile = null;
+  markPreparedPdfDirty();
+  for (const id of SAMPLE_FIELD_IDS) {
+    const field = $(`#${id}`);
+    clearFieldError(field);
+    field.value = sample.form[id] ?? '';
+  }
+  clearStepError(1);
+  clearStepError(3);
+  $('#rememberContacts').checked = false;
+  $('#police-secondary').classList.toggle('is-hidden', !sample.form.police2Name);
+  $('#police-tertiary').classList.toggle('is-hidden', !sample.form.police3Name);
+  $('#add-police').disabled = !!sample.form.police3Name;
+
+  state.sampleDataActive = true;
+  state.metrics = {...sample.metrics};
+  state.itinerary = sample.itinerary.map(row => ({...row}));
+  state.routeImage = sample.images.length ? new URL(`examples/${sample.images[0]}`, document.baseURI).href : '';
+  state.uploads = sample.images.map((name,index) => ({
+    id:`sample-${sampleId}-${index}`,
+    name:`サンプル画像 ${index + 1}：${name}`,
+    url:new URL(`examples/${name}`, document.baseURI).href,
+    kind:index === 0 ? 'route' : 'itinerary',
+    classification:index === 0 ? 'route' : 'itinerary',
+    routeSource:index === 0,
+  }));
+  state.maxReachedStep = sample.complete ? 2 : 1;
+  setStep2NextEnabled(sample.complete);
+  syncMetricInputs();
+  renderUploads();
+  renderItinerary();
+  renderRoutePreview();
+  renderDocument();
+
+  $('#sample-data-notice').classList.remove('is-hidden');
+  if (sample.complete) {
+    showStatus('サンプルを読み込みました。画像解析は実行していません。', false);
+  } else {
+    $('#analysis-status').classList.add('is-hidden');
+  }
+  state.step = 1;
+  goToStep(1);
+  return sample.label;
+}
+
+function clearSampleDataForRealUpload() {
+  if (!state.sampleDataActive) return;
+  state.sampleDataActive = false;
+  state.uploads = state.uploads.filter(upload => !upload.id.startsWith('sample-'));
+  state.routeImage = '';
+  state.itinerary = [];
+  state.metrics = {durationMinutes:null,distanceKm:null,ascentM:null,descentM:null};
+  $('#sample-data-notice').classList.add('is-hidden');
+  syncMetricInputs();
+  renderItinerary();
+  renderRoutePreview();
+  renderDocument();
+}
+
 function renderItinerary(focusTarget = null) {
   const body = $('#itinerary-body');
   if (!body) return;
@@ -155,12 +284,13 @@ function renderDocument() {
   const goal = major.at(-1)?.adjustedTime || '—';
   const route = state.routeImage ? `<img src="${state.routeImage}" alt="YAMAPルート地図">` : '<div class="route-placeholder">ルート画像なし</div>';
   const title = form.mountainName ? `${escapeHtml(form.mountainName)}登山計画書` : '登山計画書';
+  const sampleWarning = state.sampleDataActive ? '<p class="doc-sample-warning">機能確認用サンプルです。実際の登山や提出には使用しないでください。</p>' : '';
   const secondPolice = form.police2Name && form.police2Phone ? `<p>${escapeHtml(form.police2Name)}：${escapeHtml(form.police2Phone)}</p>` : '';
   const thirdPolice = form.police3Name && form.police3Phone ? `<p>${escapeHtml(form.police3Name)}：${escapeHtml(form.police3Phone)}</p>` : '';
 
   $('#document-preview').innerHTML = `
   <article class="doc-page" data-page="1">
-    <h1>${title}</h1><h2>≪概要≫</h2>
+    <h1>${title}</h1>${sampleWarning}<h2>≪概要≫</h2>
     <p class="doc-line"><strong>【団体名】：</strong>${GROUP_NAME}</p>
     <p class="doc-line"><strong>【企画者】：</strong>${escapeHtml(form.plannerStudentId)}　${escapeHtml(form.plannerName)}</p>
     <p class="doc-line"><strong>【入山エリア】：</strong>${escapeHtml(form.mountainName)}（${escapeHtml(form.areaMunicipality)}）</p>
@@ -331,6 +461,7 @@ function canAnalyzeUploads() {
 async function addFiles(files, kind) {
   const valid = files.filter(file => /^image\/(png|jpeg|webp)$/.test(file.type));
   if (files.length && !valid.length) { showStatus('PNG、JPEG、WebP形式の画像を選び直してください。', true); return; }
+  clearSampleDataForRealUpload();
   pendingPdfFile = null;
   markPreparedPdfDirty();
   markImportIncomplete();
@@ -480,18 +611,18 @@ function bind() {
   ['durationMinutes','distanceKm','ascentM','descentM'].forEach(key => $(`#${key}`).addEventListener('input', e => { pendingPdfFile = null; state.metrics[key] = e.target.value === '' ? null : Number(e.target.value); }));
   $('#add-police').onclick = () => {
     const secondary = $('#police-secondary'), tertiary = $('#police-tertiary');
-    if (secondary.hidden) {
-      secondary.hidden = false; $('#police2Name').focus();
-    } else if (tertiary.hidden) {
-      tertiary.hidden = false; $('#police3Name').focus();
+    if (secondary.classList.contains('is-hidden')) {
+      secondary.classList.remove('is-hidden'); $('#police2Name').focus();
+    } else if (tertiary.classList.contains('is-hidden')) {
+      tertiary.classList.remove('is-hidden'); $('#police3Name').focus();
     }
-    if (!tertiary.hidden) $('#add-police').disabled = true;
+    if (!tertiary.classList.contains('is-hidden')) $('#add-police').disabled = true;
   };
   const policeRows = [['police-secondary','police2Name','police2Phone'],['police-tertiary','police3Name','police3Phone']];
   policeRows.forEach(([rowId,nameId,phoneId]) => {
-    if ($(`#${nameId}`).value || $(`#${phoneId}`).value) $(`#${rowId}`).hidden = false;
+    if ($(`#${nameId}`).value || $(`#${phoneId}`).value) $(`#${rowId}`).classList.remove('is-hidden');
   });
-  $('#add-police').disabled = !$('#police-tertiary').hidden;
+  $('#add-police').disabled = !$('#police-tertiary').classList.contains('is-hidden');
   $('#step1-next').onclick = () => goToStep(2);
   $('#step2-back').onclick = () => goToStep(1);
   $('#step2-next').onclick = () => goToStep(3);
@@ -517,4 +648,4 @@ bind();
 loadContacts();
 syncMetricInputs();
 renderItinerary();
-window.__tozanApp = { state, adjustedRows, renderDocument, renderUploads, renderProgress, goToStep, downloadPdf, validateStep3, resolveNaganoPoliceStations, addFiles, canAnalyzeUploads, fitJourneyToPage, fitRouteImageForPdf, createPdfFile };
+window.__tozanApp = { state, adjustedRows, renderDocument, renderUploads, renderProgress, goToStep, downloadPdf, validateStep3, resolveNaganoPoliceStations, addFiles, canAnalyzeUploads, fitJourneyToPage, fitRouteImageForPdf, createPdfFile, loadSampleData };

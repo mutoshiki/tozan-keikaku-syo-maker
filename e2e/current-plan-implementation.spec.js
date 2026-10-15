@@ -30,7 +30,7 @@ async function enterReview(page, itinerary = [
     app.state.itinerary = rows;
     app.state.step = 2;
     app.state.maxReachedStep = 2;
-    document.querySelector('#police-secondary').hidden = false;
+    document.querySelector('#police-secondary').classList.remove('is-hidden');
     app.renderUploads();
     app.goToStep(3);
   }, { image: tinyPng, rows: itinerary });

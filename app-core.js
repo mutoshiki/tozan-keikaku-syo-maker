@@ -10,6 +10,7 @@ const state = {
   itinerary: [],
   routeImage: '',
   analyzing: false,
+  sampleDataActive: false,
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);

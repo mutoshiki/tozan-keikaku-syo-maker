@@ -92,6 +92,7 @@ export function useThemePreference() {
 export function ThemeHeaderControl() {
   const { preference, resolvedTheme, setPreference } = useThemePreference();
   const [expanded, setExpanded] = useState(false);
+  const [sampleStatus, setSampleStatus] = useState('');
   const triggerRef = useRef(null);
   const currentLabel = preference === SYSTEM ? 'システム設定' : preference === LIGHT ? 'ライト' : 'ダーク';
 
@@ -107,6 +108,12 @@ export function ThemeHeaderControl() {
     event.stopPropagation();
     setExpanded(false);
     requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  const loadSample = () => {
+    const sampleId = document.querySelector('#sample-data-select')?.value || 'standard';
+    const result = window.__tozanApp?.loadSampleData(sampleId);
+    setSampleStatus(result ? `${result}を読み込みました。` : 'サンプルを読み込めませんでした。画面を再読み込みしてください。');
   };
 
   return (
@@ -145,6 +152,20 @@ export function ThemeHeaderControl() {
           <p className="theme-preference-panel__status">
             現在の表示：{resolvedTheme === 'g100' ? 'ダーク' : 'ライト'}
           </p>
+          <div className="theme-sample-panel">
+            <p className="theme-preference-panel__title">機能確認用サンプル</p>
+            <p className="theme-preference-panel__status">現在の入力を選んだサンプルで置き換えます。画像解析サービスには送信しません。</p>
+            <label className="field" htmlFor="sample-data-select">
+              <span>サンプルデータ</span>
+              <select id="sample-data-select" defaultValue="standard">
+                <option value="standard">標準的な日帰り</option>
+                <option value="complex">長い行程・複数管轄</option>
+                <option value="validation">入力エラー確認</option>
+              </select>
+            </label>
+            <button className="theme-sample-load" type="button" onClick={loadSample}>サンプルで入力を置き換える</button>
+            <p className="theme-preference-panel__status" role="status" aria-live="polite">{sampleStatus}</p>
+          </div>
         </div>
       </HeaderPanel>
     </>
