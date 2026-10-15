@@ -17,10 +17,10 @@ function addSelectedFiles(kind, inputId) {
 
 function NativeField({ id, label, type = 'text', defaultValue, required = false, optional = false, ...props }) {
   return (
-    <label className="field">
-      <span>{label}{optional && <span className="field-optional">（任意）</span>}</span>
+    <div className="field">
+      <label htmlFor={id}>{label}{optional && <span className="field-optional">（任意）</span>}</label>
       <input id={id} type={type} defaultValue={defaultValue} required={required} {...props} />
-    </label>
+    </div>
   );
 }
 
@@ -64,7 +64,7 @@ export default function App() {
           <Grid narrow className="section-grid">
             <Column className="section-heading-column" sm={4} md={2} lg={4}><h1 id="step-heading-1" tabIndex="-1">基本情報</h1></Column>
             <Column className="section-body-column" sm={4} md={6} lg={12}><div className="section-body">
-              <p className="form-intro">必須項目を入力してください。入力内容はPDFに記載されます。</p>
+              <p className="form-intro">必須項目を入力してください。（任意）の表示がない項目は必須です。入力内容はPDFに記載されます。</p>
               <div className="form-grid form-grid--2">
                 <NativeField id="eventDate" label="実施日" type="date" required />
                 <NativeField id="meetingTime" label="集合時間" type="time" defaultValue="05:00" required />

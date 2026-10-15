@@ -110,6 +110,9 @@ function loadSampleData(sampleId) {
   renderRoutePreview();
   renderDocument();
 
+  $('#sample-data-notice').textContent = sample.complete
+    ? 'サンプルデータを表示中です。連絡先・山名・管轄などは架空です。実際の登山や提出には使用しないでください。'
+    : '入力エラーを確認するためのサンプルです。連絡先・山名・管轄などは未入力または架空です。実際の登山や提出には使用しないでください。';
   $('#sample-data-notice').classList.remove('is-hidden');
   if (sample.complete) {
     showStatus('サンプルを読み込みました。画像解析は実行していません。', false);
@@ -330,11 +333,55 @@ function showStepError(step, message) {
     summary.setAttribute('role', 'alert');
     root.insertBefore(summary, $('.section-grid', root));
   }
-  summary.textContent = message;
+  summary.replaceChildren();
+  summary.dataset.fieldErrors = String(Array.isArray(message));
+  const icon = document.createElement('span');
+  icon.className = 'validation-summary__icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = '!';
+  summary.append(icon);
+  const content = document.createElement('div');
+  if (Array.isArray(message)) {
+    const title = document.createElement('p');
+    title.className = 'validation-summary__title';
+    title.textContent = `入力内容を確認してください（${message.length}件）`;
+    const list = document.createElement('ul');
+    list.className = 'validation-summary__list';
+    message.forEach(({el, message: errorMessage}) => {
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = `#${el.id}`;
+      link.textContent = errorMessage;
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        el.focus();
+        el.scrollIntoView({block:'center',behavior:'smooth'});
+      });
+      item.append(link);
+      list.append(item);
+    });
+    content.append(title, list);
+  } else {
+    const text = document.createElement('p');
+    text.className = 'validation-summary__title';
+    text.textContent = message;
+    content.append(text);
+  }
+  summary.append(content);
 }
 
-function clearStepError(step) {
-  $(`.step[data-step="${step}"] .validation-summary`)?.remove();
+function clearStepError(step, fieldId = '') {
+  const summary = $(`.step[data-step="${step}"] .validation-summary`);
+  if (!summary) return;
+  if (fieldId && summary.dataset.fieldErrors === 'true') {
+    const list = $('.validation-summary__list', summary);
+    Array.from($$('a', list)).find(link => link.getAttribute('href') === `#${fieldId}`)?.closest('li')?.remove();
+    const remaining = $('li', list)?.parentElement.children.length || 0;
+    if (!remaining) summary.remove();
+    else $('.validation-summary__title', summary).textContent = `入力内容を確認してください（残り${remaining}件）`;
+    return;
+  }
+  summary.remove();
 }
 
 function setFieldError(el, message) {
@@ -346,9 +393,14 @@ function setFieldError(el, message) {
     error = document.createElement('span');
     error.className = 'field-error';
     error.id = errorId;
-    el.insertAdjacentElement('afterend', error);
+    field.append(error);
   }
-  error.textContent = message;
+  error.replaceChildren();
+  const icon = document.createElement('span');
+  icon.className = 'field-error__icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = '!';
+  error.append(icon, document.createTextNode(message));
   el.setAttribute('aria-invalid', 'true');
   const describedBy = new Set((el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
   describedBy.add(errorId);
@@ -365,7 +417,10 @@ function clearFieldError(el) {
 }
 
 function fieldLabel(el) {
-  return $('.field > span', el.closest('.field'))?.textContent.trim() || el.id;
+  const field = el.closest('.field');
+  return field?.querySelector(':scope > label')?.textContent.trim()
+    || $('.field > span', field)?.textContent.trim()
+    || el.id;
 }
 
 function fieldValidationMessage(el) {
@@ -400,7 +455,7 @@ function validateFields(step, ids) {
     clearStepError(step);
     return true;
   }
-  showStepError(step, errors[0].message);
+  showStepError(step, errors);
   errors[0].el.focus();
   errors[0].el.scrollIntoView({block:'center',behavior:'smooth'});
   return false;
@@ -635,7 +690,7 @@ function bind() {
   [1,3].forEach(step => $(`.step[data-step="${step}"]`).addEventListener('input', e => {
     if (e.target.matches('.field input, .field select')) {
       clearFieldError(e.target);
-      clearStepError(step);
+      clearStepError(step, e.target.id);
       if (step === 1 && e.target.required && !e.target.checkValidity()) {
         state.maxReachedStep = 0;
         renderProgress();
