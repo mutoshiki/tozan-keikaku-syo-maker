@@ -36,12 +36,12 @@ async function analyzeWithVision() {
   if (!AI_ENDPOINT) throw new Error('接続先が設定されていません。');
   const images = state.uploads.map(upload => dataUrlPayload(upload.url));
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 45000);
+  const timer = setTimeout(() => controller.abort(), 120000);
   let response;
   try {
     response = await fetch(AI_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({images}), signal:controller.signal });
   } catch (error) {
-    if (controller.signal.aborted) throw new Error('読み取りが45秒以内に完了しませんでした。通信状態を確認して再試行してください。');
+    if (controller.signal.aborted) throw new Error('読み取りが120秒以内に完了しませんでした。通信状態を確認して再試行してください。');
     throw new Error('画像解析サービスへ接続できませんでした。通信状態を確認して再試行してください。');
   } finally { clearTimeout(timer); }
   const payload = await response.json().catch(() => ({}));
