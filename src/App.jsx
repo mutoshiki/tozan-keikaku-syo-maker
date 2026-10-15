@@ -163,9 +163,7 @@ export default function App() {
           <Grid narrow className="section-grid">
             <Column className="section-heading-column" sm={4} md={2} lg={4}><h1 id="step-heading-3" tabIndex="-1">確認と修正</h1></Column>
             <Column className="section-body-column" sm={4} md={6} lg={12}><div className="section-body">
-              <section className="review-summary" aria-labelledby="review-summary-heading">
-                <h3 id="review-summary-heading">出力前の概要</h3>
-                <div id="review-summary-content" />
+              <section className="review-tools" aria-label="確認内容の修正">
                 <div className="review-summary__links">
                   <Button kind="ghost" id="edit-basic" type="button">基本情報を修正</Button>
                   <Button kind="ghost" id="edit-import" type="button">画像と読み取りを修正</Button>

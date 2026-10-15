@@ -96,7 +96,7 @@ test('revisitingCompletedStepsKeepsThemAvailableAndPreservesData', async ({ page
   await page.locator('[data-step-target="2"]').click();
   await expect(page.locator('[data-step-target="3"]')).toBeEnabled();
   await page.locator('[data-step-target="3"]').click();
-  await expect(page.locator('#review-summary-content')).toContainText('黒斑山');
+  await expect(page.locator('#mountainName')).toHaveValue('黒斑山');
   await expect(page.locator('#itinerary-body')).toContainText('14:34');
 });
 

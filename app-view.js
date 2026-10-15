@@ -96,25 +96,8 @@ function renderItinerary(focusTarget = null) {
 }
 
 function renderReviewSummary() {
-  const root = $('#review-summary-content');
-  if (!root) return;
-  const form = getFormData();
-  const major = adjustedRows().filter(row => row.major && row.place.trim());
-  const duration = Number(state.metrics.durationMinutes || 0);
-  const summaryRows = [
-    ['実施日', formatDateJP(form.eventDate)],
-    ['山・市町村', `${form.mountainName || '未入力'}（${form.areaMunicipality || '未入力'}）`],
-    ['行程', `${major[0]?.adjustedTime || '—'} 出発 → ${major.at(-1)?.adjustedTime || '—'} 到着`],
-    ['所要時間', durationLabel(duration)],
-    ['距離・標高差', `${state.metrics.distanceKm ?? '—'} km ／ 上り ${state.metrics.ascentM ?? '—'} m ／ 下り ${state.metrics.descentM ?? '—'} m`],
-    ['集合', `${form.meetingTime || '—'}　${form.meetingPlace || '場所未入力'}`],
-    ['雨天時', form.rainPolicy || '未選択'],
-    ['企画者', `${form.plannerName || '未入力'}（${form.plannerPhone || '電話未入力'}）`],
-    ['留守本部', `${form.baseName || '未入力'}（${form.basePhone || '電話未入力'}）`],
-    ['管轄', [form.police1Name && `${form.police1Name} ${form.police1Phone}`, form.police2Name && `${form.police2Name} ${form.police2Phone}`, form.police3Name && `${form.police3Name} ${form.police3Phone}`].filter(Boolean).join('／') || '要確認'],
-  ];
-  root.innerHTML = `<dl class="review-summary__grid">${summaryRows.map(([label,value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>`;
   const refs = $('#review-upload-references');
+  if (!refs) return;
   let itineraryIndex = 0;
   refs.innerHTML = state.uploads.length ? `<details><summary>読み取り元画像を確認（${state.uploads.length}枚）</summary><ul>${state.uploads.map(upload => `<li>${upload.kind === 'route' ? 'ルート' : `行程${++itineraryIndex}`}：${escapeHtml(upload.name)}</li>`).join('')}</ul></details>` : '<p>読み取り元画像はありません。</p>';
 }
@@ -124,9 +107,31 @@ function renderRoutePreview() {
   root.innerHTML = state.routeImage ? `<img src="${state.routeImage}" alt="ルート">` : '';
 }
 
+function normalizePhoneNumber(value) {
+  const input = String(value || '').trim().replace(/[０-９]/g, digit => String.fromCharCode(digit.charCodeAt(0) - 0xFEE0));
+  if (!input) return '';
+  if (!/^[0-9\s\u3000\-‐‑‒–—―ー−]+$/.test(input)) return null;
+  const digits = input.replace(/[^0-9]/g, '');
+  if (digits.length === 11) return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+  if (digits.length !== 10) return null;
+
+  const groups = input.split(/[\s\u3000\-‐‑‒–—―ー−]+/).filter(Boolean);
+  if (groups.length === 3 && groups.every(group => group.length >= 2 && group.length <= 4) && groups.join('') === digits) {
+    return groups.join('-');
+  }
+  if (digits.startsWith('03') || digits.startsWith('06')) return `${digits.slice(0,2)}-${digits.slice(2,6)}-${digits.slice(6)}`;
+  if (/^0(?:261|263|264|265|266|267|268|269|270|274|276|277|278|279)/.test(digits)) {
+    return `${digits.slice(0,4)}-${digits.slice(4,6)}-${digits.slice(6)}`;
+  }
+  return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+}
+
 function getFormData() {
   const ids = ['eventDate','meetingTime','meetingPlace','mountainName','areaMunicipality','rainPolicy','plannerStudentId','plannerName','plannerPhone','baseName','basePhone','police1Name','police1Phone','police2Name','police2Phone','police3Name','police3Phone','drinkLiters'];
-  return Object.fromEntries(ids.map(id => [id, $(`#${id}`).value.trim()]));
+  return Object.fromEntries(ids.map(id => {
+    const value = $(`#${id}`).value.trim();
+    return [id, id.endsWith('Phone') ? (normalizePhoneNumber(value) || value) : value];
+  }));
 }
 
 function formatDateJP(value) {
@@ -258,7 +263,7 @@ function fieldLabel(el) {
 function fieldValidationMessage(el) {
   const label = fieldLabel(el);
   if (!el.value.trim() && el.required) return `${label}を入力してください。`;
-  if (['plannerPhone','basePhone','police1Phone','police2Phone','police3Phone'].includes(el.id) && el.value.trim() && !/^0\d{1,4}-\d{1,4}-\d{3,4}$/.test(el.value.trim())) {
+  if (['plannerPhone','basePhone','police1Phone','police2Phone','police3Phone'].includes(el.id) && el.value.trim() && !normalizePhoneNumber(el.value)) {
     return '電話番号を確認してください（例：0267-22-0110、090-1234-5678）。';
   }
   if (el.validity.rangeUnderflow || el.validity.rangeOverflow) {
@@ -326,7 +331,7 @@ function renderProgress() {
 
 function goToStep(step) {
   const next = Math.max(1, Math.min(3, step));
-  if (next > state.maxReachedStep + 1) return;
+  if (next > state.maxReachedStep + 1 && !(next === 2 && state.step === 1)) return;
   if (next > 1 && state.step === 1 && !validateStep1()) return;
   if (next > 2 && (!state.itinerary.length || !state.routeImage)) return;
   state.step = next;

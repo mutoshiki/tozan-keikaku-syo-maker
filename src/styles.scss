@@ -246,13 +246,8 @@ button, input, select, textarea { font: inherit; }
 .route-preview { height: 360px; background: var(--cds-layer-01); border: 1px solid var(--cds-border-subtle-01); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .route-preview img { width: 100%; height: 100%; object-fit: contain; }
 .route-preview:empty::before { content: '画像なし'; font-size: .75rem; color: var(--cds-text-secondary); }
-.review-summary { padding: 1.25rem; margin-bottom: 2rem; background: var(--cds-layer-01); border-inline-start: 3px solid var(--cds-link-primary); }
-.review-summary h3 { margin-top: 0 !important; }
-.review-summary__grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem 2rem; margin: 0; }
-.review-summary__grid > div { min-width: 0; }
-.review-summary__grid dt { color: var(--cds-text-secondary); font-size: .75rem; }
-.review-summary__grid dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
-.review-summary__links { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.review-tools { padding: 1rem 1.25rem; margin-bottom: 2rem; background: var(--cds-layer-01); border-inline-start: 3px solid var(--cds-link-primary); }
+.review-summary__links { display: flex; flex-wrap: wrap; gap: .5rem; }
 .review-ai-note, .review-upload-references { color: var(--cds-text-secondary); font-size: .75rem; line-height: 1.5; }
 .review-upload-references ul { margin: .25rem 0; padding-left: 1.25rem; }
 .review-upload-references summary { display: inline-flex; align-items: center; min-height: 2rem; color: var(--cds-link-primary); cursor: pointer; }
@@ -329,7 +324,6 @@ body.is-pdf-export .pdf-source { left: 0; z-index: -1; }
   .itinerary-table td[data-label='操作'] { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
   .itinerary-editor__fields { grid-template-columns: 1fr; }
   .itinerary-editor__hint { grid-column: 1; }
-  .review-summary__grid { grid-template-columns: 1fr; }
   .upload-card { grid-template-columns: minmax(0,1fr) auto; }
   .upload-card__thumb { width: 4.5rem; height: 3.5rem; }
 }

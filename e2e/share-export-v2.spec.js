@@ -101,3 +101,46 @@ test('iPhone PDF shares immediately even when canShare reports false', async ({ 
   expect(await page.evaluate(()=>window.__tozanApp.state.uploads.length)).toBe(beforeUploads);
   expect(await page.evaluate(()=>window.__tozanApp.state.routeImage.length)).toBe(beforeRoute);
 });
+
+test('nativeShareAlreadyInProgressFallsBackToSavingThePDF', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});
+    Object.defineProperty(navigator,'share',{configurable:true,value:()=>{
+      throw new DOMException('An earlier share has not yet completed.','InvalidStateError');
+    }});
+  });
+  await page.goto('/');
+  await seedRainPlan(page);
+  const button = page.locator('#print-button');
+  await expect(button).toHaveAttribute('data-pdf-ready','true',{timeout:30000});
+
+  page.on('dialog', dialog => dialog.dismiss());
+  const download = page.waitForEvent('download');
+  await button.click();
+  const file = await download;
+
+  expect(file.suggestedFilename()).toMatch(/\.pdf$/);
+  await expect(button).toHaveText('PDFを保存');
+  await expect(button).toBeEnabled();
+});
+
+test('shareButtonPreventsRepeatedCallsWhileNativeShareIsPending', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__shareCalls = 0;
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});
+    Object.defineProperty(navigator,'share',{configurable:true,value:()=>{
+      window.__shareCalls += 1;
+      return new Promise(()=>{});
+    }});
+  });
+  await page.goto('/');
+  await seedRainPlan(page);
+  const button = page.locator('#print-button');
+  await expect(button).toHaveAttribute('data-pdf-ready','true',{timeout:30000});
+  await button.click();
+  await expect(button).toBeDisabled();
+  await expect(button).toHaveText('共有を開いています…');
+
+  await page.evaluate(() => document.querySelector('#print-button').click());
+  await expect.poll(() => page.evaluate(() => window.__shareCalls)).toBe(1);
+});

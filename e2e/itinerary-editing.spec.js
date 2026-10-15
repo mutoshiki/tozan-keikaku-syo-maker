@@ -23,7 +23,7 @@ test('itineraryControlsHaveContextualNamesAndKeepFocusAfterEdit', async ({ page 
   const rest = page.getByRole('spinbutton', { name:'09:00 長い地点名の例 松本市方面の休憩時間（分）' });
   await rest.fill('15');
   await expect(rest).toBeFocused();
-  await expect(page.locator('#review-summary-content')).toContainText('08:00 出発 → 14:49 到着');
+  await expect(page.locator('#itinerary-body tr').last()).toContainText('14:49');
   await page.getByRole('button', {name:'08:00 車坂峠を編集'}).click();
   await expect(page.locator('#itinerary-body tr').first().getByRole('checkbox', { name:'08:00 車坂峠をPDFに掲載' })).toBeVisible();
 
@@ -35,13 +35,12 @@ test('itineraryControlsHaveContextualNamesAndKeepFocusAfterEdit', async ({ page 
   await expect(page.getByRole('button', { name:'車坂峠を削除' }).last()).toBeFocused();
 });
 
-test('mobileItineraryControlsFitAndReviewSummaryMatchesInput', async ({ page }) => {
+test('mobileItineraryControlsFitWithoutPreExportSummary', async ({ page }) => {
   await page.setViewportSize({width:390,height:844});
   await enterReview(page);
-  await expect(page.locator('#review-summary-content')).toContainText('2026 年 10 月 20 日');
-  await expect(page.locator('#review-summary-content')).toContainText('08:00 出発 → 14:34 到着');
-  await expect(page.locator('#review-summary-content')).toContainText('6時間34分');
-  await expect(page.locator('#review-summary-content')).toContainText('長い集合場所の名前 信州大学松本キャンパス');
+  await expect(page.getByRole('heading', { name:'出力前の概要' })).toHaveCount(0);
+  await expect(page.locator('#meetingPlace')).toHaveValue('長い集合場所の名前 信州大学松本キャンパス');
+  await expect(page.locator('#itinerary-body')).toContainText('14:34');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
   const edit = page.getByRole('button', {name:'09:00 長い地点名の例 松本市方面を編集'});
@@ -63,7 +62,7 @@ test('reviewPdfPreviewCanOpenAndInvalidatesAfterEdit', async ({ page }) => {
   await page.fill('#distanceKm','10.1');
   await expect(page.locator('#pdf-preview')).toBeHidden();
   await expect(toggle).toHaveAttribute('aria-expanded','false');
-  await expect(page.locator('#review-summary-content')).toContainText('10.1 km');
+  await expect(page.locator('#distanceKm')).toHaveValue('10.1');
 });
 
 test('completedStepCanBeRevisitedAndReturnsFocusToItsHeading', async ({ page }) => {

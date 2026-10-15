@@ -57,6 +57,17 @@ test('removingItineraryRowInvalidatesPreparedPdf', async ({ page }) => {
   expect(result.preview).not.toContain('削除対象の地点');
 });
 
+test('confirmationOmitsThePreExportOverviewButKeepsThePdfContents', async ({ page }) => {
+  await enterReview(page);
+  await expect(page.getByRole('heading', { name:'出力前の概要' })).toHaveCount(0);
+  await expect(page.locator('#review-summary-content')).toHaveCount(0);
+  await expect(page.locator('#edit-basic')).toBeVisible();
+  await expect(page.locator('#review-upload-references details')).toBeVisible();
+  await expect(page.locator('#document-preview')).toContainText('≪概要≫');
+  await expect(page.locator('#document-preview')).toContainText('≪行程≫');
+  await expect(page.locator('#document-preview')).toContainText('削除対象の地点');
+});
+
 test('invalidRequiredValuesBlockExport', async ({ page }) => {
   await enterReview(page);
   const button = page.locator('#print-button');
@@ -105,6 +116,58 @@ test('phoneFormatErrorsAreExplained', async ({ page }) => {
   await page.fill('#plannerPhone', '0267-22-0110');
   await page.locator('#step1-next').click();
   await expect(page.locator('.step[data-step="2"]')).toBeVisible();
+});
+
+test('nextExplainsRequiredFieldClearedAfterInitialProgress', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#eventDate', '2026-10-20');
+  await page.fill('#plannerStudentId', 'AUDIT-003');
+  await page.fill('#plannerName', '評価用企画者');
+  await page.fill('#plannerPhone', '090-1234-5678');
+  await page.fill('#baseName', '評価用留守本部');
+  await page.fill('#basePhone', '0267-22-0110');
+
+  await page.fill('#plannerName', '');
+  await page.locator('#step1-next').click();
+
+  await expect(page.locator('.step[data-step="1"]')).toBeVisible();
+  await expect(page.locator('#plannerName')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('#plannerName').locator('xpath=..')).toContainText('氏名を入力してください');
+});
+
+test('phoneNumbersAreHyphenatedInReviewAndPdfForCommonInputFormats', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    const values = {
+      eventDate: '2026-10-20', meetingTime: '08:00', meetingPlace: '評価用集合場所', rainPolicy: '雨天中止',
+      plannerStudentId: 'AUDIT-002', plannerName: '評価用企画者', plannerPhone: '09012345678',
+      baseName: '評価用留守本部', basePhone: '0267 22 0110',
+      mountainName: '評価用の山', areaMunicipality: '長野県小諸市',
+      durationMinutes: '180', distanceKm: '5.2', ascentM: '600', descentM: '600', drinkLiters: '2.0',
+      police1Name: '小諸警察署', police1Phone: '0267-22-0110',
+    };
+    for (const [id, value] of Object.entries(values)) document.getElementById(id).value = value;
+    const canvas = document.createElement('canvas');
+    canvas.width = 640; canvas.height = 480;
+    canvas.getContext('2d').fillRect(0, 0, 640, 480);
+    const route = canvas.toDataURL('image/png');
+    const app = window.__tozanApp;
+    app.state.routeImage = route;
+    app.state.uploads = [{ id:'route-test', name:'route.png', url:route, kind:'route', classification:'route', routeSource:true }];
+    app.state.metrics = { durationMinutes:180, distanceKm:5.2, ascentM:600, descentM:600 };
+    app.state.itinerary = [
+      { time:'08:00', place:'出発地点', major:true, restMinutes:0 },
+      { time:'11:00', place:'評価用の山', major:true, restMinutes:0 },
+    ];
+    app.state.step = 1; app.state.maxReachedStep = 1;
+    app.goToStep(2);
+    app.state.step = 2; app.state.maxReachedStep = 2;
+    app.goToStep(3);
+  });
+
+  await expect(page.locator('.step[data-step="3"]')).toBeVisible();
+  await expect(page.locator('#document-preview')).toContainText('090-1234-5678');
+  await expect(page.locator('#document-preview')).toContainText('0267-22-0110');
 });
 
 test('latestEditWinsDuringPdfPreparation', async ({ page }) => {

@@ -6,6 +6,8 @@
 
   let preparedFile = null;
   let preparing = false;
+  let sharing = false;
+  let forceSave = false;
   let prepareVersion = 0;
   let debounceTimer = null;
 
@@ -14,7 +16,7 @@
 
   function actionLabel() {
     const probe = new File([''], '登山計画書.pdf', { type:'application/pdf' });
-    return shouldUseNativeShare(probe) ? 'PDFを共有' : 'PDFを保存';
+    return !forceSave && shouldUseNativeShare(probe) ? 'PDFを共有' : 'PDFを保存';
   }
 
   function setButton(label = actionLabel(), disabled = false, ready = false) {
@@ -31,6 +33,39 @@
     clearTimeout(debounceTimer);
     // 編集中に何度も重いPDF生成を走らせず、操作が止まってからまとめて準備する。
     debounceTimer = setTimeout(() => preparePdf(), 1200);
+  }
+
+  function saveAfterShareFailure(file) {
+    forceSave = true;
+    downloadFile(file);
+    if (isStep3Active()) setButton('PDFを保存', false, true);
+  }
+
+  function startNativeShare(file) {
+    if (sharing) return;
+    sharing = true;
+    button.disabled = true;
+    button.textContent = '共有を開いています…';
+
+    let result;
+    try {
+      // Safari の transient activation を失わないよう、クリック直後に呼ぶ。
+      result = navigator.share({ files:[file] });
+    } catch (error) {
+      console.error(error);
+      sharing = false;
+      saveAfterShareFailure(file);
+      return;
+    }
+
+    Promise.resolve(result).catch(error => {
+      if (error?.name === 'AbortError') return;
+      console.error(error);
+      saveAfterShareFailure(file);
+    }).finally(() => {
+      sharing = false;
+      if (isStep3Active() && preparedFile === file) setButton(actionLabel(), false, true);
+    });
   }
 
   async function preparePdf() {
@@ -81,28 +116,15 @@
     // Revalidate at the final action: the user may have changed fields after
     // preparation or reached this control through a non-standard route.
     if (typeof app.validateStep3 === 'function' && !app.validateStep3()) return;
+    if (sharing) return;
 
     if (!preparedFile) {
       if (!preparing) preparePdf();
       return;
     }
 
-    if (shouldUseNativeShare(preparedFile)) {
-      let sharePromise;
-      try {
-        // Safari の transient activation を失わないよう、クリック直後に共有を呼ぶ。
-        sharePromise = navigator.share({ files: [preparedFile] });
-      } catch (error) {
-        console.error(error);
-        window.alert('共有を開けませんでした。もう一度押してください。');
-        return;
-      }
-      Promise.resolve(sharePromise).catch(error => {
-        if (error?.name === 'AbortError') return;
-        console.error(error);
-        // iPhoneでは共有失敗時も自動ダウンロードへ落とさず、この画面と添付画像を保持する。
-        window.alert('共有を開けませんでした。もう一度押してください。');
-      });
+    if (!forceSave && shouldUseNativeShare(preparedFile)) {
+      startNativeShare(preparedFile);
       return;
     }
 
