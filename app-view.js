@@ -4,20 +4,6 @@ function syncMetricInputs() {
 
 function markPreparedPdfDirty() {
   window.__tozanShare?.markDirty();
-  closePdfPreview();
-}
-
-let pdfPreviewGeneration = 0;
-function closePdfPreview() {
-  pdfPreviewGeneration += 1;
-  const preview = $('#pdf-preview');
-  if (preview && !preview.classList.contains('is-hidden')) {
-    if (preview.dataset.url) URL.revokeObjectURL(preview.dataset.url);
-    preview.replaceChildren(); preview.classList.add('is-hidden');
-    const toggle = $('#toggle-pdf-preview');
-    toggle?.setAttribute('aria-expanded','false');
-    if (toggle) toggle.textContent = 'PDFプレビューを表示';
-  }
 }
 
 function renderItinerary(focusTarget = null) {
@@ -330,7 +316,6 @@ function goToStep(step) {
   state.maxReachedStep = Math.max(state.maxReachedStep, next);
   $$('.step').forEach(el => el.classList.toggle('is-active', Number(el.dataset.step) === state.step));
   renderProgress();
-  if (state.step !== 3) closePdfPreview();
   if (state.step === 3) { syncMetricInputs(); renderRoutePreview(); }
   window.scrollTo({top:0,behavior:'instant'});
   $(`#step-heading-${state.step}`)?.focus({preventScroll:true});
@@ -512,33 +497,10 @@ function bind() {
   $('#step2-next').onclick = () => goToStep(3);
   $('#step3-back').onclick = () => goToStep(2);
   $('#print-button').onclick = downloadPdf;
-  $('#toggle-pdf-preview').onclick = async event => {
-    const button = event.currentTarget;
-    const root = $('#pdf-preview');
-    if (!root.classList.contains('is-hidden')) {
-      pdfPreviewGeneration += 1;
-      root.classList.add('is-hidden'); button.setAttribute('aria-expanded','false'); button.textContent = 'PDFプレビューを表示';
-      if (root.dataset.url) URL.revokeObjectURL(root.dataset.url);
-      root.replaceChildren(); return;
-    }
-    button.disabled = true; button.textContent = 'プレビューを作成中…';
-    const version = ++pdfPreviewGeneration;
-    try {
-      const file = await createPdfFile();
-      if (version !== pdfPreviewGeneration) return;
-      const url = URL.createObjectURL(file); root.dataset.url = url;
-      const frame = document.createElement('iframe'); frame.title = '登山計画書PDFプレビュー'; frame.src = url;
-      const fallback = document.createElement('a'); fallback.href = url; fallback.download = file.name; fallback.textContent = 'PDFを開けない場合は保存';
-      root.replaceChildren(frame, fallback); root.classList.remove('is-hidden');
-      button.setAttribute('aria-expanded','true'); button.textContent = 'PDFプレビューを閉じる';
-    } catch (error) { showStepError(3, `プレビューを作成できませんでした。入力を確認して再試行してください。${error.message ? ` ${error.message}` : ''}`); }
-    finally { button.disabled = false; if (button.textContent === 'プレビューを作成中…') button.textContent = 'PDFプレビューを表示'; document.body.classList.remove('is-pdf-export'); }
-  };
   $$('.progress__step').forEach(btn => btn.onclick = () => { const n = Number(btn.dataset.stepTarget); if (n <= state.maxReachedStep) goToStep(n); });
   $('#rememberContacts').onchange = () => { if ($('#rememberContacts').checked) saveContacts(); else localStorage.removeItem(CONTACT_STORAGE_KEY); };
   CONTACT_IDS.forEach(id => $(`#${id}`).addEventListener('input', saveContacts));
-  $('.step[data-step="3"]').addEventListener('input', () => { pendingPdfFile = null; closePdfPreview(); });
-  $('.step[data-step="3"]').addEventListener('change', () => { closePdfPreview(); });
+  $('.step[data-step="3"]').addEventListener('input', () => { pendingPdfFile = null; });
   [1,3].forEach(step => $(`.step[data-step="${step}"]`).addEventListener('input', e => {
     if (e.target.matches('.field input, .field select')) {
       clearFieldError(e.target);

@@ -37,15 +37,13 @@ test('mobileConfirmationOmitsReviewItineraryAndKeepsPdfContents', async ({ page 
   expect(narrowOverflow).toBeLessThanOrEqual(1);
 });
 
-test('reviewPdfPreviewCanOpenAndInvalidatesAfterEdit', async ({ page }) => {
+test('confirmationHasNoPdfPreviewButKeepsPdfSourceAndSaveAction', async ({ page }) => {
   await enterReview(page);
-  const toggle = page.locator('#toggle-pdf-preview');
-  await toggle.click();
-  await expect(page.locator('#pdf-preview iframe')).toBeVisible({timeout:30000});
-  await expect(toggle).toHaveAttribute('aria-expanded','true');
+  await expect(page.locator('#toggle-pdf-preview')).toHaveCount(0);
+  await expect(page.locator('#pdf-preview')).toHaveCount(0);
+  await expect(page.locator('#document-preview')).toContainText('08:00');
+  await expect(page.locator('#print-button')).toBeVisible();
   await page.fill('#distanceKm','10.1');
-  await expect(page.locator('#pdf-preview')).toBeHidden();
-  await expect(toggle).toHaveAttribute('aria-expanded','false');
   await expect(page.locator('#distanceKm')).toHaveValue('10.1');
 });
 

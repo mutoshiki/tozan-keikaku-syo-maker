@@ -204,8 +204,6 @@ export default function App() {
 
               <h3>ルート</h3>
               <div id="route-preview" className="route-preview" />
-              <div className="pdf-preview-actions"><Button kind="secondary" id="toggle-pdf-preview" type="button" aria-expanded="false">PDFプレビューを表示</Button></div>
-              <div id="pdf-preview" className="pdf-preview is-hidden" />
             </div></Column>
           </Grid>
           <Grid narrow className="step-actions-grid"><Column className="step-actions-column" sm={4} md={{ span: 6, offset: 2 }} lg={{ span: 12, offset: 4 }}><div className="step-actions">

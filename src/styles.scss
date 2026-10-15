@@ -246,8 +246,6 @@ button, input, select, textarea { font: inherit; }
 .route-preview { height: 360px; background: var(--cds-layer-01); border: 1px solid var(--cds-border-subtle-01); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .route-preview img { width: 100%; height: 100%; object-fit: contain; }
 .route-preview:empty::before { content: '画像なし'; font-size: .75rem; color: var(--cds-text-secondary); }
-.pdf-preview-actions { margin-top: 1.5rem; }
-.pdf-preview iframe { width: 100%; height: min(75vh, 56rem); border: 1px solid var(--cds-border-subtle-01); background: white; }
 
 /* Legacy-rendered row remove buttons are the only remaining non-Carbon button. */
 .btn--danger-ghost { min-height: 2rem; border: 0; background: transparent; color: var(--cds-link-primary); padding: 0 .5rem; cursor: pointer; }
