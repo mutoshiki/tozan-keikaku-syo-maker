@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Column, FileUploaderDropContainer, Grid, Header, HeaderName, SkipToContent } from '@carbon/react';
+import { Button, Column, FileUploaderDropContainer, Grid, Header, HeaderName, SkipToContent, Theme as CarbonTheme } from '@carbon/react';
 import { ThemeHeaderControl } from './ThemeToggle.jsx';
 import LegacyRuntime from './LegacyRuntime.jsx';
 
@@ -37,11 +37,11 @@ export default function App() {
 
   return (
     <>
-      <Header aria-label="登山計画書メーカー">
+      <CarbonTheme as={Header} theme="g100" aria-label="登山計画書メーカー">
         <SkipToContent href="#main-content" />
-        <HeaderName href="#main-content" prefix="">登山計画書メーカー</HeaderName>
+        <HeaderName href="https://mutoshiki.github.io/sanpokai-kikaku-portal/" target="_blank" rel="noopener noreferrer" prefix="">登山計画書メーカー</HeaderName>
         <ThemeHeaderControl />
-      </Header>
+      </CarbonTheme>
 
       <main id="main-content">
         <Grid className="app-shell">

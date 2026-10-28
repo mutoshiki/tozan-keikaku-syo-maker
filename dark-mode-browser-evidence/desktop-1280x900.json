@@ -1,0 +1,27 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 900
+  },
+  "initial": {
+    "overflowX": 0,
+    "heading": "基本情報",
+    "carbonButtons": 7,
+    "eventDateHeight": 48
+  },
+  "dark": {
+    "rootTheme": "g100",
+    "rootClasses": "cds--layer-one cds--g100",
+    "storedTheme": "dark",
+    "overflowX": 0,
+    "bodyBackground": "rgb(22, 22, 22)",
+    "appBackground": "rgb(22, 22, 22)",
+    "inputBackground": "rgb(38, 38, 38)",
+    "panelBackground": "rgb(38, 38, 38)",
+    "docBackground": "rgb(255, 255, 255)",
+    "docColor": "rgb(17, 17, 17)",
+    "docCount": 3
+  },
+  "pageErrors": [],
+  "consoleErrors": []
+}
