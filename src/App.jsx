@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, Column, FileUploaderDropContainer, Grid, Header, HeaderName, SkipToContent, Theme as CarbonTheme } from '@carbon/react';
 import { ThemeHeaderControl } from './ThemeToggle.jsx';
 import LegacyRuntime from './LegacyRuntime.jsx';
+import ProjectHandoffNotice from './ProjectHandoffNotice.jsx';
 
 const example = (name) => `${import.meta.env.BASE_URL}examples/${name}`;
 const acceptedImageTypes = ['image/png', 'image/jpeg', 'image/webp'];
@@ -43,6 +44,7 @@ export default function App() {
         <ThemeHeaderControl />
       </CarbonTheme>
 
+      <ProjectHandoffNotice />
       <main id="main-content">
         <Grid className="app-shell">
         <Column className="app-shell-progress" sm={4} md={8} lg={16}>
