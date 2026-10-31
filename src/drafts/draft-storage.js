@@ -47,6 +47,8 @@ export async function loadDraft(scope, { indexedDB } = {}) {
     for (const asset of draft.assets) {
       const record = await requestValue(assetStore.get(`${key}:${asset.id}`));
       if (record?.blob instanceof Blob) assets.set(asset.id, record.blob);
+      else if (record?.data instanceof ArrayBuffer) assets.set(asset.id, new Blob([record.data], { type: record.mimeType || asset.mimeType || '' }));
+      else if (ArrayBuffer.isView(record?.data)) assets.set(asset.id, new Blob([record.data], { type: record.mimeType || asset.mimeType || '' }));
     }
     return { status: 'loaded', draft, assets };
   } finally { db.close(); }
@@ -60,6 +62,11 @@ export async function saveDraft(scope, value, { expectedRevision, assets = [], i
   for (const asset of draft.assets) {
     if (!blobs.has(asset.id) || !(blobs.get(asset.id) instanceof Blob)) throw new TypeError('下書きの画像データがありません。');
   }
+  // WebKit can reject otherwise valid Blob values in IndexedDB with
+  // "Error preparing Blob/File data". Store bytes plus MIME type instead;
+  // convert before opening the transaction so its lifetime stays synchronous.
+  const bytesByAsset = new Map();
+  for (const asset of draft.assets) bytesByAsset.set(asset.id, await blobs.get(asset.id).arrayBuffer());
   const db = await openDatabase(indexedDB);
   try {
     const tx = db.transaction([DRAFTS, ASSETS], 'readwrite');
@@ -75,7 +82,11 @@ export async function saveDraft(scope, value, { expectedRevision, assets = [], i
     const wantedKeys = new Set(nextDraft.assets.map((asset) => `${key}:${asset.id}`));
     const oldRecords = await requestValue(images.getAll());
     for (const record of oldRecords) if (record.key.startsWith(`${key}:`) && !wantedKeys.has(record.key)) images.delete(record.key);
-    for (const asset of nextDraft.assets) images.put({ key: `${key}:${asset.id}`, blob: blobs.get(asset.id) });
+    for (const asset of nextDraft.assets) images.put({
+      key: `${key}:${asset.id}`,
+      data: bytesByAsset.get(asset.id),
+      mimeType: blobs.get(asset.id).type || asset.mimeType || '',
+    });
     await new Promise((resolve, reject) => {
       tx.oncomplete = resolve;
       tx.onabort = () => reject(tx.error || new Error('下書きを保存できませんでした。'));

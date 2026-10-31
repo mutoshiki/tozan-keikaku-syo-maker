@@ -27,6 +27,27 @@ describe('draft storage', () => {
     expect(draftScopeKey(scope)).not.toBe(draftScopeKey({ kind: 'standalone', draftId: 'A' }));
   });
 
+  it('stores image bytes in a Safari-compatible record and reconstructs the blob', async () => {
+    const blob = new Blob(['safari-route-data'], { type: 'image/webp' });
+    await saveDraft(scope, base, { expectedRevision: 0, assets: [{ id: 'route', blob }] });
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('tozan-mountain-drafts-v1', 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const request = db.transaction('assets', 'readonly').objectStore('assets').get('project:A:route');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    expect(record).toMatchObject({ mimeType: 'image/webp', data: expect.any(ArrayBuffer) });
+    const loaded = await loadDraft(scope);
+    expect(loaded.assets.get('route')).toBeInstanceOf(Blob);
+    expect(loaded.assets.get('route').type).toBe('image/webp');
+    expect(await loaded.assets.get('route').text()).toBe('safari-route-data');
+  });
+
   it('reports revision conflicts and retains the previous snapshot and image', async () => {
     const original = new Blob(['original'], { type: 'image/webp' });
     await saveDraft(scope, base, { expectedRevision: 0, assets: [{ id: 'route', blob: original }] });
