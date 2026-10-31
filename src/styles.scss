@@ -19,7 +19,7 @@
     font-size: 0.875rem;
   }
   .draft-controls__status { display: flex; align-items: center; gap: $spacing-03; min-height: 2rem; }
-  .draft-controls__project-date { display: flex; align-items: center; justify-content: space-between; gap: $spacing-03; min-height: 2.5rem; border-bottom: 1px solid var(--cds-border-subtle-01); }
+  .draft-controls__toast { position: fixed; z-index: 10000; right: $spacing-05; bottom: $spacing-05; padding: $spacing-03 $spacing-05; border-radius: 4px; background: var(--cds-inverse-02); color: var(--cds-text-inverse); box-shadow: 0 2px 8px rgb(0 0 0 / 20%); }
   .draft-controls__indicator { width: .5rem; height: .5rem; border-radius: 50%; background: var(--cds-support-success); }
   .draft-controls__indicator--saving,.draft-controls__indicator--loading { background: var(--cds-support-warning); }
   .draft-controls__indicator--error,.draft-controls__indicator--conflict { background: var(--cds-support-error); }
@@ -310,7 +310,6 @@
 
 @media (max-width: 672px) {
   .draft-controls { padding-left: $spacing-05; padding-right: $spacing-05; }
-  .draft-controls__project-date { align-items: flex-start; flex-direction: column; padding-block: $spacing-02; }
   .app-shell { padding: $spacing-11 $spacing-05 $spacing-09; }
   .app-shell-progress { margin-bottom: $spacing-05; }
   .progress { grid-template-columns: repeat(3, 1fr); margin-bottom: 0; }

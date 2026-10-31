@@ -11,6 +11,11 @@ const compatibilityExports = `
 window.normalizeVisionResult = normalizeVisionResult;
 window.municipalityArea = municipalityArea;
 window.applyPoliceFromRoute = applyPoliceFromRoute;
+window.__tozanApp.compatibilityExports = {
+  normalizeVisionResult,
+  municipalityArea,
+  applyPoliceFromRoute,
+};
 window.__tozanApp.draftRuntime = {
   root: document,
   state,
@@ -50,10 +55,16 @@ function createScopedWindow(root, globalWindow, scopedDocument) {
       if (key === '__tozanApp' || key === '__tozanShare') return localValues.get(key);
       if (key === 'scrollTo') return () => {};
       if (key === 'dispatchEvent' || key === 'addEventListener' || key === 'removeEventListener') return root[key].bind(root);
-      if (key === 'TOZAN_AI_ENDPOINT') return globalWindow.TOZAN_AI_ENDPOINT;
       if (localValues.has(key)) return localValues.get(key);
+      if (key === 'TOZAN_AI_ENDPOINT') return globalWindow.TOZAN_AI_ENDPOINT;
       const fromWindow = Reflect.get(globalWindow, key, globalWindow);
-      return fromWindow === undefined ? Reflect.get(globalThis, key) : fromWindow;
+      if (fromWindow !== undefined) {
+        if (['requestAnimationFrame', 'cancelAnimationFrame', 'getComputedStyle', 'matchMedia', 'fetch', 'setTimeout', 'clearTimeout'].includes(key)) {
+          return fromWindow.bind(globalWindow);
+        }
+        return fromWindow;
+      }
+      return Reflect.get(globalThis, key);
     },
     set(_target, key, value) {
       if (key === '__tozanApp' || key === '__tozanShare' || key === 'html2canvas' || key === 'jspdf') localValues.set(key, value);
@@ -79,16 +90,25 @@ export default function LegacyRuntime({ rootRef, standalone = false, onRuntime, 
     scopedWindow.jspdf = { jsPDF };
     startRuntime(scopedWindow);
     const runtime = scopedWindow.__tozanApp;
+    const shareApi = scopedWindow.__tozanShare;
     runtime.exampleAssets = examples;
     runtime.addFiles = runtime.addFiles;
     runtime.dispose = () => {
       runtime.disposeDraftListeners?.();
       scopedWindow.__tozanShare?.dispose?.();
       root.removeAttribute('data-runtime-ready');
-      if (standalone && window.__tozanApp === runtime) delete window.__tozanApp;
+      if (standalone && window.__tozanApp === runtime) {
+        delete window.__tozanApp;
+        if (window.__tozanShare === shareApi) delete window.__tozanShare;
+        for (const name of Object.keys(runtime.compatibilityExports || {})) delete window[name];
+      }
     };
     root.dataset.runtimeReady = 'true';
-    if (standalone) window.__tozanApp = runtime;
+    if (standalone) {
+      window.__tozanApp = runtime;
+      window.__tozanShare = scopedWindow.__tozanShare;
+      Object.assign(window, runtime.compatibilityExports);
+    }
     onRuntime?.(runtime);
     root.dispatchEvent(new CustomEvent('tozan:runtime-ready', { bubbles: true }));
     window.dispatchEvent(new CustomEvent('tozan:runtime-ready', { detail: { runtime } }));
