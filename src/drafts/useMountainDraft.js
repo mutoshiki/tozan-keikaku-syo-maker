@@ -122,7 +122,9 @@ export function useMountainDraft(scope, runtimeInstance) {
         eventTarget.removeEventListener('tozan:draft-change', changed);
         eventTarget.removeEventListener('tozan:workspace-active', onWorkspaceActive);
       };
-      if (sampleSelectedDuringLoad || runtime.state.sampleDataActive === true) void save(true);
+      // DraftControls owns sample loading and persists it after the initial
+      // draft read completes. Saving here as well races that save at revision
+      // zero and makes the freshly loaded sample appear as a cross-tab conflict.
     };
     const onReady = () => { void attach().catch(() => { if (!cancelled) { setStatus('error'); setError('下書きを読み込めませんでした。'); } }); };
     window.addEventListener('tozan:runtime-ready', onReady);
