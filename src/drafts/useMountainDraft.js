@@ -78,11 +78,17 @@ export function useMountainDraft(scope, runtimeInstance) {
 
   useEffect(() => {
     let cancelled = false;
+    let attachingRuntime = null;
     const generation = ++generationRef.current;
     setStatus('loading');
     const attach = async () => {
       const runtime = runtimeInstance?.draftRuntime;
-      if (!runtime) return;
+      if (!runtime || runtime === attachingRuntime) return;
+      // `runtime-ready` can arrive just before this effect subscribes. In that
+      // case we attach immediately below, while a queued event may also call
+      // `attach`. Reserve the instance before awaiting IndexedDB so the two
+      // paths cannot save the same initial revision concurrently.
+      attachingRuntime = runtime;
       const sampleGeneration = runtime.sampleGeneration || 0;
       runtimeRef.current = runtime;
       const loaded = await loadDraft(scopeRef.current);
@@ -128,7 +134,7 @@ export function useMountainDraft(scope, runtimeInstance) {
       runtimeRef.current?.disposeDraftListeners?.();
       window.removeEventListener('tozan:runtime-ready', onReady);
     };
-  }, [scopeKey, save, runtimeInstance]);
+  }, [scopeKey, save, runtimeInstance?.draftRuntime]);
 
   const exportFile = useCallback(async () => {
     const runtime = runtimeRef.current;
