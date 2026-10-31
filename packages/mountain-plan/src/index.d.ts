@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 
 export interface MountainPlanWorkspaceProps {
-  project: { roomId: string; projectName?: string; eventDate?: string };
+  project: { roomId: string; projectName?: string; eventDate?: string; debugSample?: boolean };
   active?: boolean;
   onNotice?: (message: string) => void;
 }

@@ -32,7 +32,10 @@ export default function App({ draftScope: suppliedDraftScope, projectContext = n
   const rootRef = useRef(null);
   const runtimeRef = useRef(null);
   runtimeRef.current = runtime;
-  const onRuntime = useCallback((nextRuntime) => setRuntime(nextRuntime), []);
+  const onRuntime = useCallback((nextRuntime) => {
+    if (nextRuntime?.state) nextRuntime.state.debugMode = projectContext?.debugSample === true;
+    setRuntime(nextRuntime);
+  }, [projectContext?.debugSample]);
   const loadSample = useCallback((sampleId) => runtimeRef.current?.loadSampleData?.(sampleId), []);
   const standaloneScope = useMemo(() => {
     let draftId = 'default';
@@ -251,7 +254,7 @@ export default function App({ draftScope: suppliedDraftScope, projectContext = n
         </Grid>
         <div id="document-preview" className="pdf-source" aria-hidden="true" />
       </main>
-      <LegacyRuntime rootRef={rootRef} standalone={!embedded} onRuntime={onRuntime} examples={examples} />
+      <LegacyRuntime rootRef={rootRef} standalone={!embedded} onRuntime={onRuntime} examples={examples} debugMode={projectContext?.debugSample === true} />
       </div>
     </>
   );

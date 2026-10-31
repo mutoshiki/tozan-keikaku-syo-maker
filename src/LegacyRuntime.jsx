@@ -76,7 +76,7 @@ function createScopedWindow(root, globalWindow, scopedDocument) {
 }
 
 /** Executes the existing classic-script runtime with DOM access limited to its workspace root. */
-export default function LegacyRuntime({ rootRef, standalone = false, onRuntime, examples = {} }) {
+export default function LegacyRuntime({ rootRef, standalone = false, debugMode = false, onRuntime, examples = {} }) {
   useEffect(() => {
     const root = rootRef?.current;
     if (!root) return undefined;
@@ -88,6 +88,7 @@ export default function LegacyRuntime({ rootRef, standalone = false, onRuntime, 
 
     scopedWindow.html2canvas = html2canvas;
     scopedWindow.jspdf = { jsPDF };
+    scopedWindow.__TOZAN_DEBUG_MODE = debugMode;
     startRuntime(scopedWindow);
     const runtime = scopedWindow.__tozanApp;
     const shareApi = scopedWindow.__tozanShare;
@@ -117,7 +118,7 @@ export default function LegacyRuntime({ rootRef, standalone = false, onRuntime, 
       runtime.dispose();
       onRuntime?.(null);
     };
-  }, [rootRef, standalone, onRuntime, examples]);
+  }, [rootRef, standalone, debugMode, onRuntime, examples]);
 
   return null;
 }
