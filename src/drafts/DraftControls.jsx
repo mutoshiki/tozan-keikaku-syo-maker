@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@carbon/react';
 import { useMountainDraft } from './useMountainDraft.js';
+import { loadProjectSample } from './project-sample.js';
 
 export function DraftControls({ scope, runtime, embedded = false, project = null, loadSampleOnReady = false }) {
   const draft = useMountainDraft(scope, runtime);
@@ -18,7 +19,7 @@ export function DraftControls({ scope, runtime, embedded = false, project = null
     if (!loadSampleOnReady || sampleStarted.current || draft.status === 'loading' || draft.status === 'saving' || draft.status === 'conflict') return;
     if (draft.hasDraft) return;
     sampleStarted.current = true;
-    runtime?.loadSampleData?.('standard');
+    loadProjectSample(runtime, projectDate);
     void draft.saveNow();
   }, [loadSampleOnReady, draft.status, draft.hasDraft, draft.saveNow, runtime]);
 
@@ -27,12 +28,12 @@ export function DraftControls({ scope, runtime, embedded = false, project = null
     const reset = async event => {
       if (event.detail?.roomId !== scope.roomId) return;
       await draft.remove();
-      runtime.loadSampleData?.('standard');
+      loadProjectSample(runtime, projectDate);
       await draft.saveNow();
     };
     window.addEventListener('sanpo:debug-sample-reset', reset);
     return () => window.removeEventListener('sanpo:debug-sample-reset', reset);
-  }, [loadSampleOnReady, runtime, scope.roomId, draft.remove, draft.saveNow]);
+  }, [loadSampleOnReady, runtime, scope.roomId, projectDate, draft.remove, draft.saveNow]);
 
   async function handleImport(event) {
     const file = event.target.files?.[0];
@@ -50,7 +51,7 @@ export function DraftControls({ scope, runtime, embedded = false, project = null
 
   async function handleSample() {
     if (draft.hasDraft && !window.confirm('現在の登山計画書を機能確認用サンプルに置き換えます。よろしいですか？')) return;
-    const label = runtime?.loadSampleData?.('standard');
+    const label = loadProjectSample(runtime, projectDate);
     if (!label) return;
     await draft.saveNow();
   }
