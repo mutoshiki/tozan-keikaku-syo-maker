@@ -63,19 +63,15 @@ export function DraftControls({ scope, runtime, embedded = false, project = null
     await draft.remove();
   }
 
-  async function handleSample() {
-    if (draft.hasDraft && !window.confirm('現在の登山計画書を機能確認用サンプルに置き換えます。よろしいですか？')) return;
-    const label = loadProjectSample(runtime, projectDate);
-    if (!label) return;
-    await draft.saveNow();
-  }
-
   useEffect(() => {
     if (!embedded || loadSampleOnReady || draft.status !== 'saved' || draft.hasDraft || !projectDate || !dateField || dateField.value) return;
     dateField.value = projectDate;
     dateField.dispatchEvent(new Event('input', { bubbles: true }));
     dateField.dispatchEvent(new Event('change', { bubbles: true }));
   }, [embedded, loadSampleOnReady, draft.status, draft.hasDraft, projectDate, dateField]);
+
+  const hasVisibleControls = !embedded || savedToast || Boolean(draft.error) || draft.status === 'conflict';
+  if (!hasVisibleControls) return null;
 
   return (
     <section className="draft-controls" aria-label="下書き">
@@ -87,7 +83,6 @@ export function DraftControls({ scope, runtime, embedded = false, project = null
       {draft.error && <p className="draft-controls__error" role="alert">{draft.error}</p>}
       {draft.status === 'conflict' && <Button kind="ghost" size="sm" type="button" onClick={() => void draft.restore()}>最新の下書きを読み込む</Button>}
       {embedded && draft.status === 'error' && draft.hasDraft && <Button kind="ghost" size="sm" type="button" onClick={() => void draft.exportFile()}>下書きを書き出す</Button>}
-      {embedded && loadSampleOnReady && <Button kind="ghost" size="sm" type="button" onClick={() => void handleSample()}>サンプルを読み直す</Button>}
       {!embedded && <details className="draft-controls__menu">
         <summary>下書きの操作</summary>
         <div className="draft-controls__actions">
