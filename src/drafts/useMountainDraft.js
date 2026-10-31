@@ -24,6 +24,8 @@ export function useMountainDraft(scope, runtimeInstance) {
   const revisionRef = useRef(0);
   const generationRef = useRef(0);
   const timerRef = useRef(null);
+  const saveInFlightRef = useRef(false);
+  const saveQueuedRef = useRef(false);
   const scopeKey = scopeId(scope);
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
@@ -34,8 +36,15 @@ export function useMountainDraft(scope, runtimeInstance) {
       timerRef.current = setTimeout(() => { void save(true); }, 800);
       return;
     }
+    clearTimeout(timerRef.current);
+    timerRef.current = null;
+    if (saveInFlightRef.current) {
+      saveQueuedRef.current = true;
+      return;
+    }
     const runtime = runtimeRef.current;
     if (!runtime) return;
+    saveInFlightRef.current = true;
     const generation = generationRef.current;
     try {
       setStatus('saving');
@@ -60,6 +69,12 @@ export function useMountainDraft(scope, runtimeInstance) {
       if (generation !== generationRef.current) return;
       setStatus('error');
       setError(cause?.name === 'QuotaExceededError' ? '保存容量が不足しています。下書きを書き出してください。' : '下書きを保存できませんでした。');
+    } finally {
+      saveInFlightRef.current = false;
+      if (saveQueuedRef.current && generation === generationRef.current) {
+        saveQueuedRef.current = false;
+        void save(true);
+      }
     }
   }, [scopeKey]);
 
@@ -132,6 +147,7 @@ export function useMountainDraft(scope, runtimeInstance) {
     return () => {
       cancelled = true;
       clearTimeout(timerRef.current);
+      saveQueuedRef.current = false;
       if (generation === generationRef.current) generationRef.current += 1;
       runtimeRef.current?.disposeDraftListeners?.();
       window.removeEventListener('tozan:runtime-ready', onReady);
