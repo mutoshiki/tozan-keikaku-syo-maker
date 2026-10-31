@@ -48,6 +48,26 @@ describe('draft storage', () => {
     expect(await loaded.assets.get('route').text()).toBe('safari-route-data');
   });
 
+  it('continues to read image blobs saved by the previous draft format', async () => {
+    const legacyBlob = new Blob(['legacy-route-data'], { type: 'image/webp' });
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('tozan-mountain-drafts-v1', 1);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore('drafts', { keyPath: 'key' });
+        request.result.createObjectStore('assets', { keyPath: 'key' });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const tx = db.transaction(['drafts', 'assets'], 'readwrite');
+    tx.objectStore('drafts').put({ key: 'project:A', draft: { ...base, revision: 1 } });
+    tx.objectStore('assets').put({ key: 'project:A:route', blob: legacyBlob });
+    await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
+    db.close();
+    const loaded = await loadDraft(scope);
+    expect(await loaded.assets.get('route').text()).toBe('legacy-route-data');
+  });
+
   it('reports revision conflicts and retains the previous snapshot and image', async () => {
     const original = new Blob(['original'], { type: 'image/webp' });
     await saveDraft(scope, base, { expectedRevision: 0, assets: [{ id: 'route', blob: original }] });
