@@ -7,7 +7,6 @@ export function DraftControls({ scope, runtime, embedded = false, project = null
   const draft = useMountainDraft(scope, runtime);
   const sampleStarted = useRef(false);
   const [savedToast, setSavedToast] = useState(false);
-  const previousStatus = useRef(draft.status);
   const toastTimer = useRef(null);
   const dateField = runtime?.draftRuntime?.root?.querySelector?.('#eventDate');
   const projectDate = /^\d{4}-\d{2}-\d{2}$/.test(String(project?.eventDate || '')) ? project.eventDate : '';
@@ -17,14 +16,12 @@ export function DraftControls({ scope, runtime, embedded = false, project = null
         : draft.status === 'conflict' ? '別のタブで更新あり' : '保存できません';
 
   useEffect(() => {
-    const previous = previousStatus.current;
-    previousStatus.current = draft.status;
-    if (!embedded || previous !== 'saving' || draft.status !== 'saved') return undefined;
+    if (!embedded || draft.saveCount === 0) return undefined;
     setSavedToast(true);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setSavedToast(false), 2400);
     return undefined;
-  }, [embedded, draft.status]);
+  }, [embedded, draft.saveCount]);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 

@@ -20,6 +20,7 @@ export function useMountainDraft(scope, runtimeInstance) {
   const [status, setStatus] = useState('loading');
   const [hasDraft, setHasDraft] = useState(false);
   const [error, setError] = useState('');
+  const [saveCount, setSaveCount] = useState(0);
   const runtimeRef = useRef(null);
   const revisionRef = useRef(0);
   const generationRef = useRef(0);
@@ -58,6 +59,7 @@ export function useMountainDraft(scope, runtimeInstance) {
         setHasDraft(true);
         setStatus('saved');
         setError('');
+        setSaveCount(value => value + 1);
       } else if (result.status === 'conflict') {
         setStatus('conflict');
         setError('別のタブで下書きが更新されました。最新の下書きを読み込んでください。');
@@ -174,5 +176,5 @@ export function useMountainDraft(scope, runtimeInstance) {
     else { setStatus('conflict'); setError('別のタブで更新されました。最新の下書きを確認してください。'); }
   }, [scopeKey]);
 
-  return { status, hasDraft, error, restore, saveNow: () => save(true), exportFile, remove };
+  return { status, hasDraft, error, saveCount, restore, saveNow: () => save(true), exportFile, remove };
 }
