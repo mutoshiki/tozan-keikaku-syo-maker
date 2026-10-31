@@ -64,7 +64,7 @@ export function DraftControls({ scope, runtime, embedded = false, project = null
       {savedToast && <div className="draft-controls__toast" role="status" aria-live="polite">下書きを保存しました</div>}
       {draft.error && <p className="draft-controls__error" role="alert">{draft.error}</p>}
       {draft.status === 'conflict' && <Button kind="ghost" size="sm" type="button" onClick={() => void draft.restore()}>最新の下書きを読み込む</Button>}
-      {draft.status === 'error' && draft.hasDraft && <Button kind="ghost" size="sm" type="button" onClick={() => void draft.exportFile()}>下書きを書き出す</Button>}
+      {draft.status === 'error' && <Button kind="ghost" size="sm" type="button" onClick={() => void draft.exportFile()}>下書きを書き出す</Button>}
     </section>
   );
 }

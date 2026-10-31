@@ -138,7 +138,7 @@ function markImportIncomplete() {
 
 async function analyzeUploads() {
   // Bundled sample images are for UI inspection only and must never reach the vision service.
-  if (state.sampleDataActive) {
+  if (state.debugMode || state.sampleDataActive) {
     showStatus('サンプル画像を表示中です。画像解析は実行していません。');
     return;
   }
