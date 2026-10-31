@@ -179,6 +179,7 @@ async function analyzeUploads() {
     showStatus(`画像を読み取れませんでした。${error.message || '画像を確認してください。'} 画像を差し替えるか、再試行してください。`, true, true);
   } finally {
     state.analyzing = false;
+    window.dispatchEvent(new CustomEvent('tozan:draft-change'));
   }
 }
 

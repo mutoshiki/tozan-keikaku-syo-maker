@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react';
+import { useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import configSource from '../config.js?raw';
@@ -7,39 +7,117 @@ import flowSource from '../app-flow.js?raw';
 import viewSource from '../app-view.js?raw';
 import shareSource from '../app-share.js?raw';
 
-const RUNTIME_KEY = '__TOZAN_REACT_RUNTIME_READY__';
 const compatibilityExports = `
 window.normalizeVisionResult = normalizeVisionResult;
 window.municipalityArea = municipalityArea;
 window.applyPoliceFromRoute = applyPoliceFromRoute;
+window.__tozanApp.compatibilityExports = {
+  normalizeVisionResult,
+  municipalityArea,
+  applyPoliceFromRoute,
+};
+window.__tozanApp.draftRuntime = {
+  root: document,
+  state,
+  renderUploads,
+  renderRoutePreview,
+  renderItinerary,
+  syncMetricInputs,
+  renderProgress,
+  syncStep2Readiness: () => setStep2NextEnabled(!!state.itinerary.length && !!state.routeImage),
+  invalidatePdf: () => { pendingPdfFile = null; markPreparedPdfDirty(); },
+};
 `;
 
-/**
- * Transitional compatibility bridge while React becomes the sole DOM owner.
- *
- * The current production behavior is implemented by classic scripts that share
- * one top-level lexical scope. Executing their source as one bundle preserves
- * that tested behavior without keeping a second hand-authored production DOM.
- * This bridge can be removed after those functions are migrated module-by-module.
- */
-export default function LegacyRuntime() {
-  useLayoutEffect(() => {
-    if (window[RUNTIME_KEY]) return undefined;
+function createScopedDocument(root, globalDocument) {
+  return new Proxy(globalDocument, {
+    get(target, key) {
+      if (key === 'body') return root;
+      if (key === 'baseURI') return root.ownerDocument.baseURI;
+      if (key === 'querySelector') return (selector) => root.querySelector(selector);
+      if (key === 'querySelectorAll') return (selector) => root.querySelectorAll(selector);
+      if (key === 'getElementById') return (id) => root.querySelector(`#${CSS.escape(id)}`);
+      if (key === 'addEventListener' || key === 'removeEventListener' || key === 'dispatchEvent') return root[key].bind(root);
+      const value = Reflect.get(target, key, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
 
-    window.html2canvas = html2canvas;
-    window.jspdf = { ...(window.jspdf || {}), jsPDF };
+function createScopedWindow(root, globalWindow, scopedDocument) {
+  const localValues = new Map();
+  const scope = new Proxy(Object.create(null), {
+    has: () => true,
+    get(_target, key) {
+      if (key === Symbol.unscopables) return undefined;
+      if (key === 'window' || key === 'globalThis') return scope;
+      if (key === 'document') return scopedDocument;
+      if (key === '__tozanApp' || key === '__tozanShare') return localValues.get(key);
+      if (key === 'scrollTo') return () => {};
+      if (key === 'dispatchEvent' || key === 'addEventListener' || key === 'removeEventListener') return root[key].bind(root);
+      if (localValues.has(key)) return localValues.get(key);
+      if (key === 'TOZAN_AI_ENDPOINT') return globalWindow.TOZAN_AI_ENDPOINT;
+      const fromWindow = Reflect.get(globalWindow, key, globalWindow);
+      if (fromWindow !== undefined) {
+        if (['requestAnimationFrame', 'cancelAnimationFrame', 'getComputedStyle', 'matchMedia', 'fetch', 'setTimeout', 'clearTimeout'].includes(key)) {
+          return fromWindow.bind(globalWindow);
+        }
+        return fromWindow;
+      }
+      return Reflect.get(globalThis, key);
+    },
+    set(_target, key, value) {
+      if (key === '__tozanApp' || key === '__tozanShare' || key === 'html2canvas' || key === 'jspdf') localValues.set(key, value);
+      else localValues.set(key, value);
+      return true;
+    },
+  });
+  return scope;
+}
 
-    const source = [configSource, coreSource, flowSource, viewSource, shareSource, compatibilityExports]
-      .join('\n\n;\n\n');
+/** Executes the existing classic-script runtime with DOM access limited to its workspace root. */
+export default function LegacyRuntime({ rootRef, standalone = false, onRuntime, examples = {} }) {
+  useEffect(() => {
+    const root = rootRef?.current;
+    if (!root) return undefined;
+    const scopedDocument = createScopedDocument(root, document);
+    const scopedWindow = createScopedWindow(root, window, scopedDocument);
+    const startRuntime = new Function('scope', `with (scope) {\n${[
+      configSource, coreSource, flowSource, viewSource, shareSource, compatibilityExports,
+    ].join('\n\n;\n\n')}\n}`);
 
-    // Keep the classic files in a single lexical scope exactly as they ran when
-    // loaded by the previous production index.html.
-    const startRuntime = new Function(source);
-    startRuntime();
-    window[RUNTIME_KEY] = true;
+    scopedWindow.html2canvas = html2canvas;
+    scopedWindow.jspdf = { jsPDF };
+    startRuntime(scopedWindow);
+    const runtime = scopedWindow.__tozanApp;
+    const shareApi = scopedWindow.__tozanShare;
+    runtime.exampleAssets = examples;
+    runtime.addFiles = runtime.addFiles;
+    runtime.dispose = () => {
+      runtime.disposeDraftListeners?.();
+      scopedWindow.__tozanShare?.dispose?.();
+      root.removeAttribute('data-runtime-ready');
+      if (standalone && window.__tozanApp === runtime) {
+        delete window.__tozanApp;
+        if (window.__tozanShare === shareApi) delete window.__tozanShare;
+        for (const name of Object.keys(runtime.compatibilityExports || {})) delete window[name];
+      }
+    };
+    root.dataset.runtimeReady = 'true';
+    if (standalone) {
+      window.__tozanApp = runtime;
+      window.__tozanShare = scopedWindow.__tozanShare;
+      Object.assign(window, runtime.compatibilityExports);
+    }
+    onRuntime?.(runtime);
+    root.dispatchEvent(new CustomEvent('tozan:runtime-ready', { bubbles: true }));
+    window.dispatchEvent(new CustomEvent('tozan:runtime-ready', { detail: { runtime } }));
 
-    return undefined;
-  }, []);
+    return () => {
+      runtime.dispose();
+      onRuntime?.(null);
+    };
+  }, [rootRef, standalone, onRuntime, examples]);
 
   return null;
 }
