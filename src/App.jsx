@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Column, FileUploaderDropContainer, Grid, Header, HeaderName, SkipToContent, Theme as CarbonTheme } from '@carbon/react';
 import { ThemeHeaderControl } from './ThemeToggle.jsx';
 import LegacyRuntime from './LegacyRuntime.jsx';
 import ProjectHandoffNotice from './ProjectHandoffNotice.jsx';
+import DraftControls from './drafts/DraftControls.jsx';
 
-const example = (name) => `${import.meta.env.BASE_URL}examples/${name}`;
 const acceptedImageTypes = ['image/png', 'image/jpeg', 'image/webp'];
+const emptyExamples = Object.freeze({});
 
-function addSelectedFiles(kind, inputId) {
+function addSelectedFiles(kind, inputId, rootRef, runtimeRef) {
   return (_event, { addedFiles }) => {
     const files = [...addedFiles];
-    const input = document.getElementById(inputId);
+    const input = rootRef.current?.querySelector(`#${CSS.escape(inputId)}`);
     if (input) input.value = '';
-    window.__tozanApp?.addFiles(files, kind);
+    runtimeRef.current?.addFiles(files, kind);
   };
 }
 
@@ -25,26 +26,50 @@ function NativeField({ id, label, type = 'text', defaultValue, required = false,
   );
 }
 
-export default function App() {
+export default function App({ draftScope: suppliedDraftScope, projectContext = null, embedded = false, active = true, onNotice, assetBaseUrl = import.meta.env.BASE_URL, examples = emptyExamples } = {}) {
   const [step2Ready, setStep2Ready] = useState(false);
+  const [runtime, setRuntime] = useState(null);
+  const rootRef = useRef(null);
+  const runtimeRef = useRef(null);
+  runtimeRef.current = runtime;
+  const onRuntime = useCallback((nextRuntime) => setRuntime(nextRuntime), []);
+  const loadSample = useCallback((sampleId) => runtimeRef.current?.loadSampleData?.(sampleId), []);
+  const standaloneScope = useMemo(() => {
+    let draftId = 'default';
+    try {
+      draftId = localStorage.getItem('tozan-standalone-draft-id-v1') || crypto.randomUUID();
+      localStorage.setItem('tozan-standalone-draft-id-v1', draftId);
+    } catch {}
+    return { kind: 'standalone', draftId };
+  }, []);
+  const draftScope = suppliedDraftScope || standaloneScope;
+  const example = (name) => examples[name] || `${assetBaseUrl}examples/${name}`;
 
   useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
     const onReadiness = (event) => setStep2Ready(!!event.detail?.enabled);
-    document.addEventListener('tozan:step2-readiness', onReadiness);
+    root.addEventListener('tozan:step2-readiness', onReadiness);
     return () => {
-      document.removeEventListener('tozan:step2-readiness', onReadiness);
+      root.removeEventListener('tozan:step2-readiness', onReadiness);
     };
   }, []);
 
+  useEffect(() => {
+    rootRef.current?.dispatchEvent(new CustomEvent('tozan:workspace-active', { detail: { active } }));
+  }, [active, runtime]);
+
   return (
     <>
-      <CarbonTheme as={Header} theme="g100" aria-label="登山計画書メーカー">
+      {!embedded && <CarbonTheme as={Header} theme="g100" aria-label="登山計画書メーカー">
         <SkipToContent href="#main-content" />
         <HeaderName href="https://mutoshiki.github.io/sanpokai-kikaku-portal/" target="_blank" rel="noopener noreferrer" prefix="">登山計画書メーカー</HeaderName>
-        <ThemeHeaderControl />
-      </CarbonTheme>
+        <ThemeHeaderControl onLoadSample={loadSample} />
+      </CarbonTheme>}
 
-      <ProjectHandoffNotice />
+      {!embedded && <ProjectHandoffNotice />}
+      <div className="mountain-plan-workspace" ref={rootRef}>
+      <DraftControls scope={draftScope} runtime={runtime} embedded={embedded} project={projectContext} onNotice={onNotice} loadSampleOnReady={projectContext?.debugSample === true} />
       <main id="main-content">
         <Grid className="app-shell">
         <Column className="app-shell-progress" sm={4} md={8} lg={16}>
@@ -118,7 +143,7 @@ export default function App() {
                     accept={acceptedImageTypes}
                     labelText="ルート画像を追加"
                     aria-describedby="route-file-help"
-                    onAddFiles={addSelectedFiles('route', 'route-file-input')}
+                    onAddFiles={addSelectedFiles('route', 'route-file-input', rootRef, runtimeRef)}
                   />
                   <p className="upload-help" id="route-file-help">PNG、JPEG、WebP形式の画像を1枚選択できます。</p>
                 </div>
@@ -141,7 +166,7 @@ export default function App() {
                     multiple
                     labelText="行程画像を追加"
                     aria-describedby="itinerary-file-help"
-                    onAddFiles={addSelectedFiles('itinerary', 'itinerary-file-input')}
+                    onAddFiles={addSelectedFiles('itinerary', 'itinerary-file-input', rootRef, runtimeRef)}
                   />
                   <p className="upload-help" id="itinerary-file-help">PNG、JPEG、WebP形式。行程が複数枚の場合はまとめて選択できます。</p>
                 </div>
@@ -226,7 +251,8 @@ export default function App() {
         </Grid>
         <div id="document-preview" className="pdf-source" aria-hidden="true" />
       </main>
-      <LegacyRuntime />
+      <LegacyRuntime rootRef={rootRef} standalone={!embedded} onRuntime={onRuntime} examples={examples} />
+      </div>
     </>
   );
 }

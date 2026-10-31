@@ -8,6 +8,7 @@
   let preparing = false;
   let sharing = false;
   let forceSave = false;
+  let disposed = false;
   let prepareVersion = 0;
   let debounceTimer = null;
 
@@ -69,23 +70,23 @@
   }
 
   async function preparePdf() {
-    if (!isStep3Active() || preparing) return;
+    if (disposed || !isStep3Active() || preparing) return;
     const version = prepareVersion;
     preparing = true;
     setButton('PDFを準備中…', true, false);
     try {
       const file = await app.createPdfFile();
-      if (version === prepareVersion && isStep3Active()) {
+      if (!disposed && version === prepareVersion && isStep3Active()) {
         preparedFile = file;
         setButton(actionLabel(), false, true);
       }
     } catch (error) {
       console.error(error);
-      if (version === prepareVersion && isStep3Active()) setButton(actionLabel(), false, false);
+      if (!disposed && version === prepareVersion && isStep3Active()) setButton(actionLabel(), false, false);
     } finally {
       document.body.classList.remove('is-pdf-export');
       preparing = false;
-      if (version !== prepareVersion && isStep3Active()) preparePdf();
+      if (!disposed && version !== prepareVersion && isStep3Active()) preparePdf();
     }
   }
 
@@ -151,5 +152,14 @@
     markDirty,
     getPreparedFile: () => preparedFile,
     shouldUseNativeShare,
+    dispose: () => {
+      disposed = true;
+      prepareVersion += 1;
+      clearTimeout(debounceTimer);
+      observer.disconnect();
+      button.removeEventListener('click', sharePreparedPdf, true);
+      step3.removeEventListener('input', markDirty);
+      step3.removeEventListener('change', markDirty);
+    },
   };
 })();

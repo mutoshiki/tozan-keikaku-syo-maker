@@ -76,6 +76,7 @@ function loadSampleData(sampleId) {
   const sample = SAMPLE_DATA[sampleId];
   if (!sample) return '';
 
+  window.__tozanApp.sampleGeneration = (window.__tozanApp.sampleGeneration || 0) + 1;
   pendingPdfFile = null;
   markPreparedPdfDirty();
   for (const id of SAMPLE_FIELD_IDS) {
@@ -93,11 +94,12 @@ function loadSampleData(sampleId) {
   state.sampleDataActive = true;
   state.metrics = {...sample.metrics};
   state.itinerary = sample.itinerary.map(row => ({...row}));
-  state.routeImage = sample.images.length ? new URL(`examples/${sample.images[0]}`, document.baseURI).href : '';
+  const exampleUrl = name => window.__tozanApp?.exampleAssets?.[name] || new URL(`examples/${name}`, document.baseURI).href;
+  state.routeImage = sample.images.length ? exampleUrl(sample.images[0]) : '';
   state.uploads = sample.images.map((name,index) => ({
     id:`sample-${sampleId}-${index}`,
     name:`サンプル画像 ${index + 1}：${name}`,
-    url:new URL(`examples/${name}`, document.baseURI).href,
+    url:exampleUrl(name),
     kind:index === 0 ? 'route' : 'itinerary',
     classification:index === 0 ? 'route' : 'itinerary',
     routeSource:index === 0,
@@ -121,6 +123,7 @@ function loadSampleData(sampleId) {
   }
   state.step = 1;
   goToStep(1);
+  window.dispatchEvent(new CustomEvent('tozan:draft-change', { detail: { flush: true } }));
   return sample.label;
 }
 
@@ -504,6 +507,7 @@ function goToStep(step) {
   if (state.step === 3) { syncMetricInputs(); renderRoutePreview(); }
   window.scrollTo({top:0,behavior:'instant'});
   $(`#step-heading-${state.step}`)?.focus({preventScroll:true});
+  window.dispatchEvent(new CustomEvent('tozan:draft-change', { detail: { flush: true } }));
 }
 
 function hasUpload(kind) {
