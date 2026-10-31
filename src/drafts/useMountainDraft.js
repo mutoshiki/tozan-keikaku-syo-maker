@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { captureDraft, restoreDraft } from './draft-runtime-adapter.js';
 import { deleteDraft, loadDraft, saveDraft } from './draft-storage.js';
-import { exportDraftFile, importDraftFile } from './draft-files.js';
+import { exportDraftFile } from './draft-files.js';
 
 const scopeId = (scope) => scope.kind === 'project' ? `project:${scope.roomId}` : `standalone:${scope.draftId}`;
 
@@ -168,23 +168,11 @@ export function useMountainDraft(scope, runtimeInstance) {
     URL.revokeObjectURL(url);
   }, [scopeKey]);
 
-  const importFile = useCallback(async (file) => {
-    const imported = await importDraftFile(file, scopeRef.current);
-    const assets = imported.draft.assets.map((asset) => ({ id: asset.id, blob: imported.assets.get(asset.id) }));
-    const result = await saveDraft(scopeRef.current, imported.draft, { expectedRevision: revisionRef.current, assets });
-    if (result.status !== 'saved') throw new Error('下書きを保存できませんでした。現在の下書きは保持されています。');
-    revisionRef.current = result.draft.revision;
-    restoreDraft(runtimeRef.current, result.draft, imported.assets);
-    setHasDraft(true);
-    setStatus('saved');
-    setError('');
-  }, [scopeKey]);
-
   const remove = useCallback(async () => {
     const result = await deleteDraft(scopeRef.current, { expectedRevision: revisionRef.current });
     if (result.status === 'deleted') { revisionRef.current = 0; setHasDraft(false); setStatus('saved'); setError(''); }
     else { setStatus('conflict'); setError('別のタブで更新されました。最新の下書きを確認してください。'); }
   }, [scopeKey]);
 
-  return { status, hasDraft, error, restore, saveNow: () => save(true), exportFile, importFile, remove };
+  return { status, hasDraft, error, restore, saveNow: () => save(true), exportFile, remove };
 }

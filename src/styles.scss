@@ -24,11 +24,6 @@
   .draft-controls__indicator--saving,.draft-controls__indicator--loading { background: var(--cds-support-warning); }
   .draft-controls__indicator--error,.draft-controls__indicator--conflict { background: var(--cds-support-error); }
   .draft-controls__error { margin: 0 0 $spacing-03; color: var(--cds-text-error); }
-  .draft-controls__menu { display: inline-block; }
-  .draft-controls__menu summary { min-height: 2rem; padding: $spacing-02 0; color: var(--cds-link-primary); cursor: pointer; }
-  .draft-controls__actions { display: flex; flex-wrap: wrap; gap: $spacing-02; padding: $spacing-02 0 $spacing-04; }
-  .draft-controls__file { display: none; }
-
 .sample-data-notice { margin: 0 0 1.5rem; padding: .875rem 1rem; border-left: 4px solid var(--cds-support-warning); background: var(--cds-layer-01); color: var(--cds-text-primary); }
 
 .app-shell {
