@@ -1,4 +1,32 @@
+@use '@carbon/styles/scss/type' as type;
+
 .mountain-plan-inline {
   min-width: 0;
-  .mountain-plan-workspace { max-width: 100%; }
+  .mountain-plan-workspace {
+    max-width: 100%;
+
+    .draft-controls {
+      max-width: none;
+      margin: 0;
+      padding: 0 0 var(--sanpo-ui-field-gap, 0.5rem);
+    }
+
+    .app-shell {
+      max-width: 100%;
+      padding: var(--sanpo-ui-page-inset, 1rem) 0 var(--sanpo-ui-section-gap, 2rem);
+    }
+
+    .app-shell-progress { margin-block-end: var(--sanpo-ui-group-gap, 1.5rem); }
+
+    .section-grid {
+      padding-block-start: var(--sanpo-ui-group-gap, 1.5rem);
+    }
+
+    .section-heading-column { margin-block-end: var(--sanpo-ui-field-gap, 0.5rem); }
+    .section-heading-column h1 { @include type.type-style('heading-02'); }
+
+    .form-intro { margin-block-end: var(--sanpo-ui-group-gap, 1.5rem); }
+    .form-fieldset { margin-block-start: var(--sanpo-ui-section-gap, 2rem); }
+    .step-actions { margin-block-start: var(--sanpo-ui-section-gap, 2rem); }
+  }
 }

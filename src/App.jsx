@@ -71,7 +71,7 @@ export default function App({ draftScope: suppliedDraftScope, projectContext = n
       </CarbonTheme>}
 
       {!embedded && <ProjectHandoffNotice />}
-      <div className="mountain-plan-workspace" ref={rootRef}>
+      <div className={`mountain-plan-workspace${embedded ? ' mountain-plan-workspace--embedded' : ''}`} ref={rootRef}>
       <DraftControls scope={draftScope} runtime={runtime} embedded={embedded} project={projectContext} onNotice={onNotice} loadSampleOnReady={projectContext?.debugSample === true} />
       <main id="main-content">
         <Grid className="app-shell">
