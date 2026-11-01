@@ -12,7 +12,7 @@ test('shows received project metadata and imports the event date only after conf
   await page.getByRole('button', { name: '実施日に反映' }).click();
 
   await expect(page.locator('#eventDate')).toHaveValue('2026-11-02');
-  await expect(page.getByRole('status')).toContainText('秋名山登山企画から実施日を反映しました。');
+  await expect(page.locator('.project-handoff__status')).toContainText('秋名山登山企画から実施日を反映しました。');
   await expect(page).toHaveURL(/#?$/);
 });
 
@@ -23,7 +23,7 @@ test('does not overwrite an event date entered before confirming the import', as
   await page.getByRole('button', { name: '実施日に反映' }).click();
 
   await expect(page.locator('#eventDate')).toHaveValue('2026-11-03');
-  await expect(page.getByRole('status')).toContainText('すでに入力されています。入力内容を保ちました。');
+  await expect(page.locator('.project-handoff__status')).toContainText('すでに入力されています。入力内容を保ちました。');
 });
 
 test('dismisses the imported context without changing form values', async ({ page }) => {
@@ -34,6 +34,6 @@ test('dismisses the imported context without changing form values', async ({ pag
 
   await expect(page.locator('#eventDate')).toHaveValue('2026-11-04');
   await expect(page.getByRole('heading', { name: '企画情報を受け取りました' })).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('企画情報は反映していません。');
+  await expect(page.locator('.project-handoff__status')).toContainText('企画情報は反映していません。');
   await expect(page).toHaveURL(/#?$/);
 });

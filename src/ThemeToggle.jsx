@@ -89,7 +89,7 @@ export function useThemePreference() {
   return useContext(ThemePreferenceContext);
 }
 
-export function ThemeHeaderControl() {
+export function ThemeHeaderControl({ onLoadSample }) {
   const { preference, resolvedTheme, setPreference } = useThemePreference();
   const [expanded, setExpanded] = useState(false);
   const [sampleStatus, setSampleStatus] = useState('');
@@ -112,8 +112,10 @@ export function ThemeHeaderControl() {
 
   const loadSample = () => {
     const sampleId = document.querySelector('#sample-data-select')?.value || 'standard';
-    const result = window.__tozanApp?.loadSampleData(sampleId);
+    const result = onLoadSample?.(sampleId);
     setSampleStatus(result ? `${result}を読み込みました。` : 'サンプルを読み込めませんでした。画面を再読み込みしてください。');
+    setExpanded(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
   };
 
   return (

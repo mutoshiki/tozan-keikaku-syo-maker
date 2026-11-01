@@ -76,6 +76,7 @@ function loadSampleData(sampleId) {
   const sample = SAMPLE_DATA[sampleId];
   if (!sample) return '';
 
+  window.__tozanApp.sampleGeneration = (window.__tozanApp.sampleGeneration || 0) + 1;
   pendingPdfFile = null;
   markPreparedPdfDirty();
   for (const id of SAMPLE_FIELD_IDS) {
@@ -93,11 +94,12 @@ function loadSampleData(sampleId) {
   state.sampleDataActive = true;
   state.metrics = {...sample.metrics};
   state.itinerary = sample.itinerary.map(row => ({...row}));
-  state.routeImage = sample.images.length ? new URL(`examples/${sample.images[0]}`, document.baseURI).href : '';
+  const exampleUrl = name => window.__tozanApp?.exampleAssets?.[name] || new URL(`examples/${name}`, document.baseURI).href;
+  state.routeImage = sample.images.length ? exampleUrl(sample.images[0]) : '';
   state.uploads = sample.images.map((name,index) => ({
     id:`sample-${sampleId}-${index}`,
     name:`サンプル画像 ${index + 1}：${name}`,
-    url:new URL(`examples/${name}`, document.baseURI).href,
+    url:exampleUrl(name),
     kind:index === 0 ? 'route' : 'itinerary',
     classification:index === 0 ? 'route' : 'itinerary',
     routeSource:index === 0,
@@ -121,6 +123,7 @@ function loadSampleData(sampleId) {
   }
   state.step = 1;
   goToStep(1);
+  window.dispatchEvent(new CustomEvent('tozan:draft-change', { detail: { flush: true } }));
   return sample.label;
 }
 
@@ -504,6 +507,7 @@ function goToStep(step) {
   if (state.step === 3) { syncMetricInputs(); renderRoutePreview(); }
   window.scrollTo({top:0,behavior:'instant'});
   $(`#step-heading-${state.step}`)?.focus({preventScroll:true});
+  window.dispatchEvent(new CustomEvent('tozan:draft-change', { detail: { flush: true } }));
 }
 
 function hasUpload(kind) {
@@ -545,6 +549,7 @@ async function addFiles(files, kind) {
 const CONTACT_STORAGE_KEY = 'tozanContactsV2';
 const CONTACT_IDS = ['plannerStudentId','plannerName','plannerPhone','baseName','basePhone'];
 function loadContacts() {
+  if (state.debugMode) { $('#rememberContacts').checked = false; $('#rememberContacts').disabled = true; return; }
   try {
     const saved = JSON.parse(localStorage.getItem(CONTACT_STORAGE_KEY) || 'null');
     if (!saved) return;
@@ -553,6 +558,7 @@ function loadContacts() {
   } catch (error) { console.warn(error); }
 }
 function saveContacts() {
+  if (state.debugMode) return;
   if (!$('#rememberContacts').checked) return;
   const data = Object.fromEntries(CONTACT_IDS.map(id => [id, $(`#${id}`).value.trim()]));
   try { localStorage.setItem(CONTACT_STORAGE_KEY, JSON.stringify(data)); } catch (error) { console.warn(error); }
@@ -684,7 +690,7 @@ function bind() {
   $('#step3-back').onclick = () => goToStep(2);
   $('#print-button').onclick = downloadPdf;
   $$('.progress__step').forEach(btn => btn.onclick = () => { const n = Number(btn.dataset.stepTarget); if (n <= state.maxReachedStep) goToStep(n); });
-  $('#rememberContacts').onchange = () => { if ($('#rememberContacts').checked) saveContacts(); else localStorage.removeItem(CONTACT_STORAGE_KEY); };
+  $('#rememberContacts').onchange = () => { if ($('#rememberContacts').checked) saveContacts(); else if (!state.debugMode) localStorage.removeItem(CONTACT_STORAGE_KEY); };
   CONTACT_IDS.forEach(id => $(`#${id}`).addEventListener('input', saveContacts));
   $('.step[data-step="3"]').addEventListener('input', () => { pendingPdfFile = null; });
   [1,3].forEach(step => $(`.step[data-step="${step}"]`).addEventListener('input', e => {

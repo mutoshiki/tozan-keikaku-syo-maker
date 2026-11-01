@@ -138,7 +138,7 @@ function markImportIncomplete() {
 
 async function analyzeUploads() {
   // Bundled sample images are for UI inspection only and must never reach the vision service.
-  if (state.sampleDataActive) {
+  if (state.debugMode || state.sampleDataActive) {
     showStatus('サンプル画像を表示中です。画像解析は実行していません。');
     return;
   }
@@ -179,6 +179,7 @@ async function analyzeUploads() {
     showStatus(`画像を読み取れませんでした。${error.message || '画像を確認してください。'} 画像を差し替えるか、再試行してください。`, true, true);
   } finally {
     state.analyzing = false;
+    window.dispatchEvent(new CustomEvent('tozan:draft-change'));
   }
 }
 

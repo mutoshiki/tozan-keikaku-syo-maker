@@ -11,6 +11,7 @@ const state = {
   routeImage: '',
   analyzing: false,
   sampleDataActive: false,
+  debugMode: window.__TOZAN_DEBUG_MODE === true,
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
